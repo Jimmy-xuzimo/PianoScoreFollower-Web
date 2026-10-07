@@ -58,6 +58,22 @@ select {
     font: inherit;
 }
 
+/*
+ * 图标兜底尺寸。
+ *
+ * svg 是替换元素：没有显式尺寸时会退回默认的 300×150。只要有一个容器漏了
+ * 「xxx svg { width; height }」这条规则，那个图标就会按 300×150 渲染，
+ * 撑破所在按钮并盖住旁边的内容——空态卡片里「打开示例」的图标就踩过这个坑。
+ *
+ * 这里给所有 svg 一个安全默认值，各组件再用更具体的选择器覆盖成自己想要的尺寸。
+ * 图标本身永远不该被 flex 压缩，所以顺带固定 flex: none。
+ */
+svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+}
+
 :focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
@@ -244,6 +260,11 @@ html[data-touch="true"] ::-webkit-scrollbar {
     font-size: 14px;
     font-weight: 600;
     transition: background-color 160ms ease;
+}
+
+.text-btn svg {
+    width: 18px;
+    height: 18px;
 }
 
 .text-btn:hover {
