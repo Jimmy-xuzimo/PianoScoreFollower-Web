@@ -1,0 +1,28 @@
+# Normalise line endings so the repo behaves the same on every platform.
+* text=auto
+
+# Shell scripts must stay LF or they break outside Windows.
+*.sh text eol=lf
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+
+# Windows-only helpers keep CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.sf2 binary
+*.mid binary
+*.midi binary
+*.otf binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.keystore binary
+*.jks binary

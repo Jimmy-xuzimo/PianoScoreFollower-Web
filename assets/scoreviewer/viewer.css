@@ -1,0 +1,93 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #F4F1EA;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#viewport {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+#stage {
+    position: relative;
+    width: 100%;
+}
+
+#score {
+    width: 100%;
+}
+
+/* alphaTab renders its own surfaces; keep them transparent so the paper colour shows. */
+#score .at-surface,
+#score .at-surface-svg {
+    background: transparent !important;
+}
+
+#cursorLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    pointer-events: none;
+    z-index: 30;
+}
+
+.measure-highlight {
+    position: absolute;
+    border-radius: 6px;
+    background: rgba(77, 163, 255, 0.13);
+    box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.28);
+    transition: left 120ms ease-out, top 120ms ease-out,
+                width 120ms ease-out, height 120ms ease-out;
+}
+
+.beat-cursor {
+    position: absolute;
+    width: 3px;
+    border-radius: 2px;
+    background: #E5484D;
+    box-shadow: 0 0 8px rgba(229, 72, 77, 0.55);
+    transition: left 90ms linear, top 90ms ease-out, height 90ms ease-out;
+}
+
+.beat-cursor.dimmed {
+    background: #9AA4B2;
+    box-shadow: none;
+    opacity: 0.55;
+}
+
+.hint {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(18, 24, 33, 0.88);
+    color: #E6EDF5;
+    font: 13px/1.4 -apple-system, "Noto Sans SC", "PingFang SC", sans-serif;
+    letter-spacing: 0.2px;
+    z-index: 100;
+    transition: opacity 220ms ease;
+}
+
+.hidden {
+    opacity: 0;
+    pointer-events: none;
+}

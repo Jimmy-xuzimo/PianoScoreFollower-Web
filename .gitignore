@@ -1,0 +1,11 @@
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / tooling scratch
+.vscode/
+.idea/
+*.log
+__pycache__/
+*.pyc

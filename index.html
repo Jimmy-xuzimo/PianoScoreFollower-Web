@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-device="desktop" data-orientation="landscape" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#101418" />
+    <meta name="description" content="智能曲谱 · 网页端：导入 MIDI / MusicXML / PDF / 照片乐谱，用麦克风听你弹奏并自动翻页。" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>智能曲谱</title>
+    <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+<!-- ================================================================== -->
+<!-- 图标：Material 风格 24x24 路径，按需 <use> 引用                       -->
+<!-- ================================================================== -->
+<svg class="visually-hidden" aria-hidden="true" focusable="false">
+    <defs>
+        <symbol id="i-import" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.59.22L2.3 8.87a.5.5 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0 0 1.88L2.42 14.52a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.39.3.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.5.42h3.84c.25 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.2.08.47 0 .59-.22l1.92-3.32a.5.5 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/></symbol>
+        <symbol id="i-music" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></symbol>
+        <symbol id="i-photo" viewBox="0 0 24 24"><path fill="currentColor" d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6z"/></symbol>
+        <symbol id="i-pdf" viewBox="0 0 24 24"><path fill="currentColor" d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5zm4-3H19v1h1.5V11H19v2h-1.5V7h3zM9 9.5h1v-1H9zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4zm10 5.5h1v-3h-1z"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5z"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6a5.96 5.96 0 0 1 4.22 1.78L13 11h7V4z"/></symbol>
+        <symbol id="i-restart" viewBox="0 0 24 24"><path fill="currentColor" d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></symbol>
+        <symbol id="i-book" viewBox="0 0 24 24"><path fill="currentColor" d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5z"/></symbol>
+        <symbol id="i-back" viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></symbol>
+        <symbol id="i-chevron-up" viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></symbol>
+        <symbol id="i-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></symbol>
+        <symbol id="i-up" viewBox="0 0 24 24"><path fill="currentColor" d="m4 12 1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z"/></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path fill="currentColor" d="m20 12-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8z"/></symbol>
+        <symbol id="i-eq" viewBox="0 0 24 24"><path fill="currentColor" d="M7 18h2V6H7zm4 4h2V2h-2zM3 14h2v-4H3zm12 4h2V6h-2zm4-8v4h2v-4z"/></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
+        <symbol id="i-zoom-in" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14zm.5-7h-1v2H7v1h2v2h1v-2h2v-1h-2z"/></symbol>
+        <symbol id="i-zoom-out" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14zM7 9h5v1H7z"/></symbol>
+        <symbol id="i-library" viewBox="0 0 24 24"><path fill="currentColor" d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 5h-3v5.5a2.5 2.5 0 1 1-2.5-2.5c.57 0 1.08.19 1.5.51V5h4zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4z"/></symbol>
+        <symbol id="i-warning" viewBox="0 0 24 24"><path fill="currentColor" d="M1 21h22L12 2zm12-3h-2v-2h2zm0-4h-2v-4h2z"/></symbol>
+        <symbol id="i-timer" viewBox="0 0 24 24"><path fill="currentColor" d="M15 1H9v2h6zm-4 13h2V8h-2zm8.03-6.61 1.42-1.42a10.6 10.6 0 0 0-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4a9 9 0 1 0 9 9c0-2.12-.74-4.07-1.97-5.61M12 20a7 7 0 1 1 7-7 7 7 0 0 1-7 7"/></symbol>
+        <symbol id="i-mic" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3m5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72z"/></symbol>
+        <symbol id="i-storage" viewBox="0 0 24 24"><path fill="currentColor" d="M2 20h20v-4H2zm2-3h2v2H4zM2 4v4h20V4zm4 3H4V5h2zm-4 7h20v-4H2zm2-3h2v2H4z"/></symbol>
+        <symbol id="i-palette" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.42-4.03-8-9-8m-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></symbol>
+        <symbol id="i-dark" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36A5.39 5.39 0 0 1 12 3"/></symbol>
+        <symbol id="i-light" viewBox="0 0 24 24"><path fill="currentColor" d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zM12 18a6 6 0 1 1 6-6 6 6 0 0 1-6 6m0-10a4 4 0 1 0 4 4 4 4 0 0 0-4-4"/></symbol>
+        <symbol id="i-auto" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 3.5 3.5A3.5 3.5 0 0 0 12 8.5m0 5a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5M12 2v3m0 14v3M2 12h3m14 0h3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12m0-14.14-2.12 2.12m-9.9 9.9-2.12 2.12"/></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 10 10A10 10 0 0 0 12 2m0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8"/></symbol>
+        <symbol id="i-add" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></symbol>
+        <symbol id="i-swap" viewBox="0 0 24 24"><path fill="currentColor" d="M6.99 11 3 15l3.99 4v-3H14v-2H6.99zM21 9l-3.99-4v3H10v2h7.01v3z"/></symbol>
+        <symbol id="i-warning-tri" viewBox="0 0 24 24"><path fill="currentColor" d="M1 21h22L12 2zm12-3h-2v-2h2zm0-4h-2v-4h2z"/></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h12v12H6z"/></symbol>
+        <symbol id="i-chevron-left" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></symbol>
+        <symbol id="i-chevron-right" viewBox="0 0 24 24"><path fill="currentColor" d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></symbol>
+        <symbol id="i-mic-off" viewBox="0 0 24 24"><path fill="currentColor" d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28m-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18zM4.27 3 3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73z"/></symbol>
+        <symbol id="i-manage" viewBox="0 0 24 24"><path fill="currentColor" d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5m0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5m0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5M7 19h14v-2H7zm0-6h14v-2H7zm0-8v2h14V5z"/></symbol>
+        <symbol id="i-open" viewBox="0 0 24 24"><path fill="currentColor" d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2m0 12H4V8h16zm-5-7h-3v3h-2v-3H7V9h3V6h2v3h3z"/></symbol>
+        <symbol id="i-more" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8a2 2 0 1 0-2-2 2 2 0 0 0 2 2m0 2a2 2 0 1 0 2 2 2 2 0 0 0-2-2m0 6a2 2 0 1 0 2 2 2 2 0 0 0-2-2"/></symbol>
+    </defs>
+</svg>
+
+<div id="app">
+    <div class="screens">
+
+        <!-- ============================================================ -->
+        <!-- 跟谱 / 滚动谱：同一页，按导入内容自动切换                        -->
+        <!-- ============================================================ -->
+        <section class="screen" id="screen-score" data-active="true" aria-label="乐谱">
+            <header class="topbar">
+                <button class="icon-btn" id="btn-import" type="button" title="导入乐谱" aria-label="导入乐谱">
+                    <svg><use href="#i-import"></use></svg>
+                </button>
+                <div class="topbar__title">
+                    <h1 id="score-title">智能曲谱</h1>
+                    <span class="topbar__subtitle" id="score-subtitle">导入 MIDI / MusicXML / PDF / 照片开始</span>
+                </div>
+                <div class="topbar__actions">
+                    <button class="icon-btn" id="btn-library" type="button" title="乐谱库" aria-label="乐谱库">
+                        <svg><use href="#i-library"></use></svg>
+                    </button>
+                    <button class="icon-btn" id="btn-mode" type="button" title="切换显示方式" aria-label="切换显示方式" hidden>
+                        <svg><use href="#i-swap"></use></svg>
+                    </button>
+                    <button class="icon-btn" id="btn-manage" type="button" title="管理页面" aria-label="管理页面" hidden>
+                        <svg><use href="#i-manage"></use></svg>
+                    </button>
+                    <button class="icon-btn" id="btn-more" type="button" title="更多操作" aria-label="更多操作" hidden>
+                        <svg><use href="#i-more"></use></svg>
+                    </button>
+                    <button class="icon-btn" id="btn-settings" type="button" title="设置" aria-label="设置">
+                        <svg><use href="#i-settings"></use></svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="screen__body" id="score-body" data-reserve-bar="false"
+                 style="display:flex;flex-direction:column;overflow:hidden;">
+
+                <div class="score-stage" id="notation-stage">
+                    <iframe id="viewer" title="乐谱渲染"
+                            src="assets/scoreviewer/index.html"
+                            allow="microphone"></iframe>
+                    <div class="loading-chip" id="loading-chip" hidden>
+                        <span class="loading-chip__spinner"></span>
+                        <span id="loading-chip-text">音源加载中…</span>
+                    </div>
+                    <div class="position-chip" id="position-chip" hidden></div>
+                </div>
+
+                <div class="scroll-viewport" id="scroll-viewport" hidden>
+                    <div class="scroll-pages" id="scroll-pages"></div>
+                </div>
+
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-state__card">
+                        <div class="empty-state__icon"><svg><use href="#i-music"></use></svg></div>
+                        <h2>还没有打开乐谱</h2>
+                        <p>导入 MIDI 或 MusicXML 会排版成五线谱，可以跟谱、播放、自动翻页；<br />
+                            导入 PDF 或照片则进入滚动谱，按总时长匀速滚动。</p>
+                        <div class="empty-state__actions">
+                            <button class="filled-btn" id="btn-empty-import" type="button">
+                                <svg><use href="#i-import"></use></svg>导入乐谱
+                            </button>
+                            <button class="text-btn" id="btn-empty-samples" type="button">
+                                <svg><use href="#i-library"></use></svg>打开示例
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 麦克风面板：默认收起，只留左边缘小箭头 -->
+            <button class="mic-tab" id="mic-tab" type="button" data-open="false"
+                    aria-label="展开跟谱面板" aria-controls="mic-panel">
+                <span class="mic-tab__dot" id="mic-tab-dot" data-live="false"></span>
+                <span id="mic-tab-text">跟谱</span>
+            </button>
+
+            <aside class="mic-panel" id="mic-panel" data-open="false" aria-label="跟谱面板" aria-hidden="true">
+                <div class="mic-panel__head">
+                    <svg style="width:20px;height:20px;color:var(--primary)"><use href="#i-eq"></use></svg>
+                    <h2>跟谱面板</h2>
+                    <button class="icon-btn icon-btn--sm" id="mic-panel-close" type="button" aria-label="收起面板">
+                        <svg><use href="#i-close"></use></svg>
+                    </button>
+                </div>
+                <div class="mic-panel__body" id="mic-panel-body"></div>
+            </aside>
+
+            <!-- 底部悬浮控制条 -->
+            <div class="bar-layer" id="bar-layer" data-hidden="false">
+                <div class="bottombar" id="bottombar"></div>
+                <button class="bar-handle" id="bar-handle" type="button">
+                    <svg><use href="#i-chevron-up"></use></svg>控制栏
+                </button>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- 设置                                                          -->
+        <!-- ============================================================ -->
+        <section class="screen" id="screen-settings" aria-label="设置">
+            <header class="topbar">
+                <button class="icon-btn" id="btn-settings-back" type="button" title="返回" aria-label="返回">
+                    <svg><use href="#i-back"></use></svg>
+                </button>
+                <div class="topbar__title">
+                    <h1>设置</h1>
+                    <span class="topbar__subtitle" id="settings-subtitle">外观、校音与本地存储</span>
+                </div>
+            </header>
+            <div class="screen__body">
+                <div class="page">
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>深浅模式</h3>
+                                <p>跟随系统时会随设备的深浅色设置自动切换</p>
+                            </div>
+                        </div>
+                        <div class="card__body">
+                            <div class="segmented" id="theme-mode-group" role="radiogroup" aria-label="深浅模式"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>界面颜色</h3>
+                                <p id="palette-hint">六套配色与手机端完全一致，深浅两色都按同一套色调生成</p>
+                            </div>
+                        </div>
+                        <div class="card__body">
+                            <div class="swatches" id="palette-group" role="radiogroup" aria-label="界面颜色"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>跟谱</h3>
+                                <p>校音会先学习这台琴的音高偏移，之后识别更准</p>
+                            </div>
+                        </div>
+                        <div class="card__body card__body--flush">
+                            <button class="setting-row" id="row-tuner" type="button" style="width:100%;text-align:left;">
+                                <span class="setting-row__icon"><svg><use href="#i-eq"></use></svg></span>
+                                <span class="setting-row__text">
+                                    <strong>校音</strong>
+                                    <span id="tuner-row-status">未校准</span>
+                                </span>
+                                <span class="setting-row__control"><svg style="width:20px;height:20px"><use href="#i-back"></use></svg></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>滚动谱</h3>
+                                <p>总时长决定匀速滚动的速度，之后还能在控制条上实时调整</p>
+                            </div>
+                        </div>
+                        <div class="card__body">
+                            <div class="meter">
+                                <div class="meter__row">
+                                    <span>默认总时长</span>
+                                    <strong id="scroll-duration-value">180 秒</strong>
+                                </div>
+                                <input type="range" id="scroll-duration" min="20" max="1800" step="10" value="180"
+                                       aria-label="滚动谱默认总时长" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>本地存储</h3>
+                                <p>导入的乐谱保存在本机 IndexedDB，关掉页面也不会丢</p>
+                            </div>
+                        </div>
+                        <div class="card__body">
+                            <div class="kv-list" id="storage-stats"></div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button class="text-btn text-btn--danger" id="btn-clear-storage" type="button">
+                                    <svg><use href="#i-delete"></use></svg>清空全部乐谱
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>关于</h3>
+                                <p id="about-name">智能曲谱</p>
+                            </div>
+                        </div>
+                        <div class="card__body">
+                            <div class="kv-list" id="about-stats"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- 校音                                                          -->
+        <!-- ============================================================ -->
+        <section class="screen" id="screen-tuner" aria-label="校音">
+            <header class="topbar">
+                <button class="icon-btn" id="btn-tuner-back" type="button" title="返回" aria-label="返回">
+                    <svg><use href="#i-back"></use></svg>
+                </button>
+                <div class="topbar__title">
+                    <h1>校音</h1>
+                    <span class="topbar__subtitle">先弹一次中央 C，让应用认识你的钢琴</span>
+                </div>
+                <div class="topbar__actions">
+                    <button class="icon-btn" id="btn-tuner-reset" type="button" title="重新校准" aria-label="重新校准">
+                        <svg><use href="#i-restart"></use></svg>
+                    </button>
+                </div>
+            </header>
+            <div class="screen__body">
+                <div class="page">
+                    <div class="card">
+                        <div class="card__body">
+                            <div class="tuner">
+                                <div class="tuner__note">
+                                    <span class="tuner__note-name" id="tuner-note">--</span>
+                                    <span class="tuner__note-octave" id="tuner-octave"></span>
+                                </div>
+                                <div class="tuner__hz" id="tuner-hz">等待开始监听</div>
+                                <div class="tuner__gauge" id="tuner-gauge" data-in-tune="false">
+                                    <div class="tuner__gauge-center"></div>
+                                    <div class="tuner__gauge-needle" id="tuner-needle"></div>
+                                    <div class="tuner__scale">
+                                        <span>-50</span><span>0</span><span>+50 音分</span>
+                                    </div>
+                                </div>
+                                <div class="tuner__cents" id="tuner-cents" data-in-tune="false">0 音分</div>
+                                <div class="tuner__message" id="tuner-message">点下面的按钮开始，然后弹奏钢琴正中间的那个 C</div>
+
+                                <div class="tuner__progress" id="tuner-progress" hidden>
+                                    <div class="tuner__progress-label">
+                                        <span>中央 C 参考采样</span>
+                                        <span id="tuner-progress-text">0 / 8</span>
+                                    </div>
+                                    <div class="tuner__progress-track"><div class="tuner__progress-fill" id="tuner-progress-fill"></div></div>
+                                </div>
+
+                                <div class="tuner__ring-label">音高环 · 当前识别到的音级</div>
+                                <div class="tuner__ring" id="tuner-ring" role="group" aria-label="音高环"></div>
+
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+                                    <button class="filled-btn" id="btn-tuner-toggle" type="button">
+                                        <svg><use href="#i-mic"></use></svg>开始监听
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card__head">
+                            <div>
+                                <h3>校准状态</h3>
+                                <p>偏移以音分为单位，与八度无关，所以低音区高音区同样有效</p>
+                            </div>
+                        </div>
+                        <div class="card__body">
+                            <div class="kv-list" id="tuner-stats"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<div class="scrim" id="dialog-scrim" data-open="false" hidden></div>
+<div class="toast-layer" id="toast-layer"></div>
+
+<script src="js/dsp.js"></script>
+<script src="js/follower.js"></script>
+<script src="js/calibration.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/platform.js"></script>
+<script src="js/library.js"></script>
+<script src="js/importers.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
