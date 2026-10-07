@@ -14,6 +14,18 @@ alphaTab 渲染器。
 
 ---
 
+## 在线使用
+
+**<https://jimmy-xuzimo.github.io/PianoScoreFollower-Web/>**
+
+已通过 GitHub Pages 部署（`main` 分支根目录，强制 HTTPS），手机、平板、电脑打开即用，
+无需安装。麦克风要求安全上下文，Pages 的 HTTPS 正好满足，所以**线上地址可以直接跟谱**；
+局域网内用 IP 访问的 HTTP 页面则拿不到麦克风。
+
+想自己托管或本地调试，见下面的「快速开始」与「部署」。
+
+---
+
 ## 快速开始
 
 网页端是**纯静态站点**，但必须通过 HTTP 打开，不能双击 `index.html`：
@@ -41,6 +53,8 @@ python serve.py --host 0.0.0.0      # 让局域网内的手机 / 平板也能访
 ---
 
 ## 部署
+
+本仓库已经托管在 GitHub Pages 上（见「在线使用」），开箱可用；下面适用于自建托管或换域名。
 
 任意静态托管都行（Nginx / Caddy / GitHub Pages / Cloudflare Pages / 对象存储 + CDN）。
 两个硬性要求：
