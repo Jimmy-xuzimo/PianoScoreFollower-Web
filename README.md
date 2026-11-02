@@ -1,246 +1,71 @@
-# 智能曲谱 · 网页端
+# 智能琴谱 · Web 1.0
 
-[智能曲谱](https://github.com/Jimmy-xuzimo/PianoScoreFollower)（Android 端）的网页版本：
-**功能完全对齐，一份静态站点跑在手机、平板和电脑上**。
-导入 MIDI / MusicXML / PDF / 照片乐谱，用麦克风听你弹钢琴，自动定位光标、自动翻页；
-需要时切到滚动谱匀速滚动。
+[在线使用](https://jimmy-xuzimo.github.io/PianoScoreFollower-Web/) · [Android 项目](https://github.com/Jimmy-xuzimo/PianoScoreFollower) · [测试报告](docs/TEST_REPORT.md)
 
-网页端与手机端共用同一套算法与视觉：DSP、跟谱、校音是从 Kotlin 逐行移植过来的，
-配色是从 `ui/Theme.kt` 的色调生成算法复刻的，乐谱排版直接复用手机端 WebView 里那份
-alphaTab 渲染器。
+此次重构以 Android 1.0 为参照，复用同一个 Magenta 钢琴模型、Parangonar 在线对齐递推和乐谱渲染器。
+不再使用旧版音级相似度与前方十二个事件的选择算法，也不再宣称两个平台没有差异。
 
-> 本仓库只包含网页端，与 Android 仓库相互独立。Android 端见
-> [PianoScoreFollower](https://github.com/Jimmy-xuzimo/PianoScoreFollower)。
+## 演奏
 
----
+- MIDI / MusicXML / MXL 本地曲库，支持双手、多音轨、延音、变速与反复的实际播放时间映射。
+- 深色演奏区与白色琴谱；五线谱／上下双行简谱、逐行／分页、专注模式。简谱不写左右手文字。
+- 麦克风：AudioWorklet → Worker → 与安卓相同的 88 键模型 → 完整音高与起音对齐。
+- Web MIDI：浏览器允许后选择输入端口，琴键、力度和踏板共用相同的位置判断；无需下载钢琴模型。
+- 确认位置驱动翻页，静音不推进，低置信度暂停移动；手动浏览后可回到跟随位置。
+- 谱面预测与速度平滑只用于跟随，不把预测音符当作已经演奏或计分。
+- 评分按应弹音符等权，音高 70% + 节奏 30%，显示正确、错音、漏音、多弹。勾选评分后开始跟谱，结束时点击“结算评分”。
 
-## 在线使用
+## 录制、文件与校音
 
-**<https://jimmy-xuzimo.github.io/PianoScoreFollower-Web/>**
+- 顶栏 MIDI 入口允许先连接并自由录制，无需先有乐谱。
+- 保存录制到曲库、示范回放、MIDI 导出（已保存曲目在“更多操作 → 导出原始文件”）；原始触键事件独立于派生的 MusicXML 保留。
+- 默认 120 BPM、4/4、C 大调，可设置录制速度。原始 MIDI 不量化，时间精度为一个 SMF tick。
+- 导出当前曲谱：MIDI 派生谱面为 MusicXML；MXL 保留压缩格式。
+- PDF／照片保留排序、保存及定时滚动，没有图片识谱。
+- 校音结果会用于神经模型的后续音高补偿。暂停和进入后台释放麦克风，练习位置保存在 IndexedDB。
+- 首次进入先选曲；《你离开的事实》仍在示例曲库，不自动打开。
 
-已通过 GitHub Pages 部署（`main` 分支根目录，强制 HTTPS），手机、平板、电脑打开即用，
-无需安装。麦克风要求安全上下文，Pages 的 HTTPS 正好满足，所以**线上地址可以直接跟谱**；
-局域网内用 IP 访问的 HTTP 页面则拿不到麦克风。
+## 浏览器条件与平台差异
 
-想自己托管或本地调试，见下面的「快速开始」与「部署」。
+必须通过 HTTPS 或 localhost 使用麦克风。优先在桌面 Chrome / Edge 测试；
+Web MIDI 取决于浏览器、操作系统和设备，并非所有手机浏览器都有该接口。
+模型约 97.7 MB，首次听音跟谱时从同站点下载；推理、乐谱和录制均在浏览器本地处理。
+不向服务器发送演奏音频，不使用外部模型 CDN。模型准备期间请等待提示“输入已就绪”再弹。
 
----
+GitHub Pages 没有跨源隔离响应头，因此默认使用单线程 WASM SIMD。较慢设备可能不能实时跟上；
+输入积压超过两秒时明确暂停，避免延迟不断增长后跳谱。可改用支持的 MIDI 输入。
+浏览器仍需取得静态资源，不能把“本地推理”理解为完整离线 PWA。
 
-## 快速开始
+评分采用相同计分原则，但没有证明与安卓逐笔结果完全一致。
+安卓的完整重新量化设置、独立录制管理界面尚未全部移植；网页保存录制后从曲库管理／回放。
+真实手机拾音和实体 USB 连接效果需要按设备验证，浏览器虚拟输入测试不代表这些硬件已通过。
 
-网页端是**纯静态站点**，但必须通过 HTTP 打开，不能双击 `index.html`：
+## 实测
 
-| 原因 | 说明 |
-| --- | --- |
-| AudioWorklet | `audioWorklet.addModule()` 只在安全上下文可用，`file://` 会被拒绝 |
-| 麦克风 | `getUserMedia` 同样要求安全上下文 |
-| 资源加载 | 乐谱、字体、SoundFont 都靠 fetch/XHR，`file://` 下会被 CORS 拦掉 |
+- 实际浏览器推理用户录音前 35 秒，177 个起音的时刻和音高与 Android 参考相同；无残留张量增长。
+- 同一 1631 个真实钢琴起音逐个对照，JS SLT_OLTW 路径与 Android / 上游参考一致。
+- 模型输出缓存送入网页实际对齐核心：9 段固定演奏回归组半拍内定位 97.64%，与 Android 相同。
+- 重弹后三秒内恢复 16/20，仍未达到原定 95% 门槛；该限制未因移植而消失。
+- 20 个 Node 检查、浏览器虚拟麦克风、虚拟 MIDI 录制保存、手机／平板／桌面、MXL／PDF 与损坏文件回归。
 
-`localhost` 算安全上下文，所以本机调试只要跑一下自带的启动脚本：
+这些回归数据已用于开发，不能称新盲测或实体麦克风准确率。见 [完整报告](docs/TEST_REPORT.md)。
 
-```bash
-python serve.py                     # 默认 http://127.0.0.1:8765/
-python serve.py --port 9000         # 换端口
-python serve.py --host 0.0.0.0      # 让局域网内的手机 / 平板也能访问
+## 开发与部署
+
+纯静态站点，资源使用相对路径，保留现有 GitHub Pages 的 main 分支根目录托管方式。
+已有预生成的 vendor/，正常运行不需要构建或 npm。
+
+```sh
+python serve.py --port 8767
+npm ci
+npm test
+npm run format:check
+npm run vendor
+npm run test:ui
 ```
 
-脚本会补上 Python 默认 MIME 表里没有的类型（`.sf2`、`.woff2`、`.musicxml`、`.mid`…），
-并在开发期关掉缓存——否则改完 js/css 浏览器还在跑旧版本，很容易误判成「没生效」。
+浏览器测试使用本机 Chrome；CI 安装 Playwright Chromium。其他复现步骤见 [TESTING](docs/TESTING.md)。
+IndexedDB 沿用原库名，旧曲库和图片页序保留。新导入与录制额外保存原始字节；
+旧版已经丢失的原始 MIDI 不会伪装成可恢复。清除浏览器网站数据会删除本地曲库，请先导出。
 
-用 `--host 0.0.0.0` 时终端会打印局域网地址，手机连同一个 Wi-Fi 打开即可。
-注意：**非 localhost 的 HTTP 页面拿不到麦克风**，手机实机测跟谱必须用 HTTPS。
-
----
-
-## 部署
-
-本仓库已经托管在 GitHub Pages 上（见「在线使用」），开箱可用；下面适用于自建托管或换域名。
-
-任意静态托管都行（Nginx / Caddy / GitHub Pages / Cloudflare Pages / 对象存储 + CDN）。
-两个硬性要求：
-
-1. **必须 HTTPS**。麦克风与 AudioWorklet 都要求安全上下文，这是浏览器的硬限制。
-2. **`index.html` 必须由服务器直接返回**，不能被改写路由。页面内所有资源引用都是
-   相对路径，所以站点放在域名根（`https://example.com/`）或任意子路径
-   （`https://example.com/piano/`、GitHub Pages 的 `https://user.github.io/repo/`）
-   都能正常工作，无需改任何配置。
-
-Nginx 参考配置：
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name example.com;
-
-    root /srv/piano-web;          # 即本目录的内容
-    index index.html;
-
-    # 大型二进制资源：SoundFont 与 alphaTab 运行时，开长缓存
-    location ~* \.(sf2|woff2|otf|woff)$ {
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # 代码与页面：短缓存，发版后能及时更新
-    location ~* \.(js|css|html)$ {
-        expires 1h;
-        add_header Cache-Control "public";
-    }
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
-
-需要确保服务器给 `.sf2` 返回 `application/octet-stream`（或任意二进制类型），
-给 `.js` 返回 `text/javascript`——类型不对会导致 alphaTab 拒绝解析音源、
-或模块脚本被浏览器按严格模式拒绝执行。
-
----
-
-## 功能对照
-
-网页端与 Android 端逐项对齐，没有缺失项：
-
-| 功能 | 说明 | 手机端 | 网页端 |
-| --- | --- | :---: | :---: |
-| MIDI / MusicXML 导入 | 自研 MIDI → MusicXML 转换后交给 alphaTab 排版 | ✅ | ✅ |
-| PDF 导入 | 逐页光栅化为 JPEG，进滚动谱 | ✅ | ✅ |
-| 照片导入 | 相册多选（最多 60 张）或文件多选 | ✅ | ✅ |
-| 乐谱库持久化 | 重启不丢失，可逐条删除 | ✅ | ✅（IndexedDB） |
-| 播放乐谱 | 播放 / 暂停 / 停止，点谱面定位 | ✅ | ✅ |
-| 滚动谱 | 设定总时长匀速滚动，可暂停、手动调速 | ✅ | ✅ |
-| 实时跟谱 | 麦克风采集 + FFT 音高检测，A0–C8 全 88 键 | ✅ | ✅ |
-| 逐行跟随 | 当前谱行滑出舒适区才重新锚定 | ✅ | ✅ |
-| 自动翻页 | 置信度模型驱动 | ✅ | ✅ |
-| 跟谱面板 | 左边缘半透明小箭头唤出，含电平表、音级、匹配度 | ✅ | ✅ |
-| 校音 | 先校准中央 C，再显示音名与音分偏差 | ✅ | ✅ |
-| 音高环 | 十二音级指示 + 中央 C 校准进度 | ✅ | ✅ |
-| 深浅模式 | 跟随系统 / 浅色 / 深色 | ✅ | ✅ |
-| 界面颜色 | 跟随壁纸 + 经典蓝 / 典雅紫 / 松石绿 / 暖琥珀 / 玫瑰粉 | ✅ | ✅ |
-| 偏好持久化 | 主题、总时长、上次打开的乐谱 | ✅ | ✅（localStorage） |
-
-网页端额外补了几处只在桌面端才成立的交互：拖拽文件导入、`空格` 播放/暂停、
-`←` `→` 翻页。这些不影响手机端行为。
-
----
-
-## 设备适配
-
-### 形态识别走 UA，布局走视口
-
-`html[data-device]` 由 UA 判定，只取 `phone` / `tablet` / `desktop` 三态；
-`html[data-orientation]` 由**视口宽高**判定，而不是 `screen.orientation`。
-分开处理是有原因的：
-
-- **iPad 从 iPadOS 13 起把自己报成 `Macintosh`**，只看 UA 会误判成桌面；
-  所以补了一条判据：`platform === 'MacIntel' && maxTouchPoints > 1` 判为平板。
-- **Android 平板与手机的差别只在 UA 里有没有 `Mobile`**。
-- 方向如果跟着 `screen.orientation` 走，在桌面端拉窄窗口、平板分屏、内嵌 WebView
-  里都会和真实视口不一致，出现「竖着却套横版排版」。所以方向优先由
-  `innerWidth / innerHeight` 决定，只有视口是正方形时才回退到 `screen.orientation`。
-
-判定结果写在 `<html>` 上，CSS 直接按属性选选择器，同时保留媒体查询作为兜底
-（禁用 JS 或 UA 被伪装时仍然可用）。
-
-### 横竖屏与各尺寸的取舍
-
-- **手机竖屏**：底部控制条只留核心控件，`回到开头` 与 `自动翻页` 收进顶栏的
-  「更多操作」菜单，功能不丢但一行放得下，不会横向溢出。
-- **手机横屏 / 平板**：控制条完整展开，跟谱面板以常驻侧栏形式贴在左边缘。
-- **桌面**：跟谱面板默认展开为固定侧栏，谱面区居中，支持拖拽导入。
-- 底部悬浮控制条固定高 64px、最大宽 620px，可下滑隐藏、由底部小把手唤出——
-  与手机端同一套几何参数。
-
-已用 Chrome DevTools Protocol 模拟 iPhone、iPad、Android 手机与桌面，
-逐一验证 `data-device` / `data-orientation` 取值、横向溢出与控件宽度，全部通过。
-
----
-
-## 麦克风识别与跟谱算法
-
-这一块是与手机端**逐行对齐**移植的，不是另写一套：
-
-- **采样率用设备实际值**。固定按 44.1 kHz 假设会让 48 kHz 设备上的音高整体偏高
-  约 1.5 个半音，表现为「弹了没反应」。网页端从 `AudioContext.sampleRate` 读真实值。
-- **8192 点 FFT + 低频加权**，提升低音区精度；音高检测范围 27 Hz–4200 Hz，
-  覆盖 A0–C8 全 88 键。
-- **基频计两次权**（`FUNDAMENTAL_WEIGHT`）。否则 f、f/2、f/3… 的谐波积谱完全并列，
-  「从低往高、严格大于」的扫描会把纯音判成它自己的低八度。
-- **子谐波校正要验能量**。只有分频点本身真有能量时才回退，纯音不会被错误拉低八度。
-- **起音检测延迟半个分析窗**（8192 点约 93 ms），让分析窗正好居中在触键瞬间。
-- **匹配用余弦相似度与音级覆盖度等权融合**，单一音符在和弦里也能被认出来。
-- **重复和弦要消费事件**。连续弹同一个和弦时，若只做「找最像的」，游标会永远停在
-  第一个事件上；网页端跟踪已匹配事件下标，下一次起音从下一个事件开始找。
-- **均值相减做对比度增强**，滤掉宽带噪声底，提高正确匹配分数。
-
-音频采集与算法全部跑在 **AudioWorklet + Web Worker** 上，不占主线程——
-主线程卡顿时不会掉帧，也不会漏音。
-
----
-
-## 目录结构
-
-```
-.
-├── index.html              页面骨架 + 内联 SVG 图标集
-├── serve.py                本地静态服务器（正确 MIME + 开发期禁缓存）
-├── css/
-│   └── app.css             全部样式；颜色只走 :root 上的语义变量
-├── js/
-│   ├── platform.js         设备/方向识别、主题与配色、偏好持久化
-│   ├── library.js          乐谱库：IndexedDB 读写、删除、统计
-│   ├── importers.js        导入分流：MIDI / MusicXML / PDF 光栅化 / 图片
-│   ├── midi.js             MIDI 解析 → MusicXML 生成
-│   ├── dsp.js              FFT、色度提取、起音检测、音高检测
-│   ├── follower.js         ScoreTimeline / ScoreFollower / PageTurnController
-│   ├── calibration.js      校音引擎：中央 C 校准与音分偏差
-│   ├── audio.js            麦克风采集管线（AudioWorklet 优先，ScriptProcessor 兜底）
-│   ├── pcm-worklet.js      AudioWorkletProcessor：对齐 1024 帧整 hop
-│   ├── analysis-worker.js  Web Worker：DSP + 跟谱 + 校音
-│   └── app.js              主控：乐谱库、导入、播放、跟谱、校音、设置
-└── assets/
-    ├── scoreviewer/        alphaTab 乐谱渲染器（与手机端同一份，postMessage 通信）
-    ├── alphatab/           alphaTab 运行时、Bravura 字体、SoundFont
-    ├── pdfjs/              pdf.js（PDF 逐页光栅化）
-    └── samples/            内置示例乐谱
-```
-
-模块都以 `window.PianoXxx` 挂出（`PianoDsp` / `PianoFollower` / `PianoCalibration` /
-`PianoMidi` / `PianoImport` / `PianoLibrary` / `PianoPlatform` / `PianoAudio`），
-方便单独测试，也便于 Worker 里 `importScripts` 复用同一份实现。
-
----
-
-## 浏览器兼容
-
-| 浏览器 | 支持情况 |
-| --- | --- |
-| Chrome / Edge 88+ | 完整支持（AudioWorklet + Web Worker） |
-| Safari 14.1+（含 iOS / iPadOS） | 完整支持 |
-| Firefox 76+ | 完整支持 |
-| 无 AudioWorklet 的旧浏览器 | 自动退回 `ScriptProcessor`，延迟略高但可用 |
-
-麦克风在 iOS Safari 上需要用户手势触发——页面上的「开始跟谱」按钮本身就是手势，
-所以不需要额外处理。
-
----
-
-## 已知限制
-
-- **必须 HTTPS**（localhost 除外），否则麦克风与 AudioWorklet 不可用。
-- **音频上下文需要用户手势解锁**。浏览器策略要求首次交互后才能出声，页面已把
-  「播放」和「开始跟谱」都做成手势入口。
-- 首次加载需拉取 alphaTab 运行时、Bravura 字体与 SoundFont，建议开启长缓存。
-- 麦克风识别依赖真实输入，**桌面端用外接麦克风、移动端用真机**才能得到可信结果；
-  虚拟机、无声卡环境或纯静音输入下跟谱不会推进，这是预期行为。
-
----
-
-## 许可证
-
-与 Android 端主项目一致，[BSD 3-Clause](LICENSE) © 2026 Jimmy-xuzimo。
-
-`assets/` 下的第三方资源遵循各自许可证（alphaTab：MPL 2.0；Bravura 字体：SIL OFL 1.1；
-`piano.sf2`：CC0；pdf.js：Apache 2.0），再分发时请一并保留署名与许可证文本。
+原创代码为 [BSD 3-Clause](LICENSE)。完整署名、协议、模型来源见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)，设置中的关于页也提供相应入口。

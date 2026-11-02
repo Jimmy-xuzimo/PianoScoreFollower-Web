@@ -1,0 +1,47 @@
+{
+  "cases": [
+    {
+      "name": "Bach_Fugue_bwv_891_Duepree06M",
+      "seconds": 211.7427664399093,
+      "within_half_beat": 0.9694045399714881,
+      "median_error_beats": 0.06805639117355895,
+      "p95_error_beats": 0.2749333532866696
+    },
+    {
+      "name": "Bach_Prelude_bwv_891_BLINOV04M",
+      "seconds": 151.4637641723356,
+      "within_half_beat": 0.9980070519699524,
+      "median_error_beats": 0.05102045351472952,
+      "p95_error_beats": 0.14174050576531058
+    },
+    {
+      "name": "Bach_Prelude_bwv_891_Duepree06M",
+      "seconds": 137.46213151927438,
+      "within_half_beat": 0.9949324324324325,
+      "median_error_beats": 0.060834612490627174,
+      "p95_error_beats": 0.18711931026354856
+    },
+    {
+      "name": "k281_1",
+      "seconds": 265.2879818594104,
+      "within_half_beat": 0.9781181619256017,
+      "median_error_beats": 0.045038652744976086,
+      "p95_error_beats": 0.2665918790254424
+    },
+    {
+      "name": "k281_2",
+      "seconds": 335.4354648526077,
+      "within_half_beat": 0.9648345562785546,
+      "median_error_beats": 0.0382514344456619,
+      "p95_error_beats": 0.4045271026662645
+    }
+  ],
+  "within_half_beat": 0.9772310416798431,
+  "sha256": {
+    "js\\core\\assessment.js": "7f9369aa72f4f306542ff5f6e0d52b10014866ed7c1ea1b2dc3ea07a48ce1d71",
+    "js\\core\\midi-recording.js": "de7f2e35846743725900ef241a14b7648f899d5354a00b411bb8ec8d926d287e",
+    "js\\core\\piano-stream.js": "b8daa62058306bedfe13dfb3b86caac022a6edd990637fa558a416f4bcd9091c",
+    "js\\core\\score-follower.js": "ffd6bc33682de7009d1a298d7cf971f77932b163221f8bb600fe1be56731afe8",
+    "js\\core\\tempo-pitch.js": "07e03b48d63d68e858c25d99292fe21ce7d1ceb29e7ddba232099df2d5b5e9bb"
+  }
+}

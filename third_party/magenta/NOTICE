@@ -1,0 +1,10 @@
+Google Magenta Onsets and Frames realtime unidirectional piano model.
+Apache License 2.0; see LICENSE in this directory and upstream source headers.
+Source: https://github.com/magenta/magenta/tree/main/magenta/models/onsets_frames_transcription/realtime
+Released model: https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/tflite/onsets_frames_wavinput_uni.tflite
+SHA256: 272ebead546bcf342e56aaf3624ec5310c55de86d46aec48868720fad39d01ac
+The model is included unchanged. Android streaming adapter uses rolling past
+audio, 16 kHz causal resampling, and emits frames 26..29 each 128 ms.
+Frame labels and result availability have separate clocks. No future PCM is
+read by the evaluator. Performance on acoustic tablet input remains unverified.
+No endorsement by Google or the upstream project is implied.

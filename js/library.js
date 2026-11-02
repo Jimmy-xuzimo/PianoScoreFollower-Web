@@ -82,7 +82,9 @@
             name: record.name,
             sourceFormat: record.sourceFormat,
             size: record.blob ? record.blob.size : 0,
-            addedAt: Date.now(),
+            addedAt: record.addedAt || Date.now(),
+            tick:record.tick||0,
+            originalBlob:record.originalBlob,
             blob: record.blob
         };
         return withStore(STORE_NOTATION, 'readwrite', function (store) {

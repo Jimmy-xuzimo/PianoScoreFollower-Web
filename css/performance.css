@@ -1,0 +1,140 @@
+/* Performance-first workspace, white paper over a neutral dark canvas. */
+/* These containers must not scroll when a closing dialog restores focus. */
+#app,
+.screens {
+  overflow: clip;
+}
+#notation-stage {
+  background: #14171d;
+  display: flex;
+  flex-direction: column;
+}
+#viewer {
+  background: transparent;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 0;
+}
+.performance-controls {
+  order: -1;
+  flex: 0 0 auto;
+  margin: 6px 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 20;
+}
+.performance-controls button {
+  border: 1px solid #526074;
+  border-radius: 22px;
+  padding: 9px 14px;
+  background: #222a36;
+  color: #f2f5fa;
+  font: inherit;
+  cursor: pointer;
+}
+.performance-controls button:focus-visible {
+  outline: 3px solid #a8c7fa;
+  outline-offset: 2px;
+}
+.performance-focus #screen-score {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #14171d;
+}
+.performance-focus #screen-score > .topbar,
+.performance-focus .mic-tab,
+.performance-focus .mic-panel {
+  display: none !important;
+}
+.performance-focus #score-body {
+  height: 100dvh !important;
+}
+@media (max-width: 600px) {
+  .performance-controls {
+    margin: 4px 6px;
+    gap: 3px;
+  }
+  .performance-controls button {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+.midi-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0;
+}
+.midi-controls button,
+.midi-controls select {
+  background: #263447;
+  color: #f1f5ff;
+  border: 1px solid #62738a;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.performance-controls {
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+  justify-content: flex-end;
+}
+.performance-controls label,
+.performance-controls output {
+  background: #222a36;
+  color: #f2f5fa;
+  padding: 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.performance-controls output:empty {
+  display: none;
+}
+
+#screen-score {
+  --background: #14171d;
+  --surface: #22262f;
+  --surface-container: #22262f;
+  --surface-container-high: #303744;
+  --on-surface: #f1f4f9;
+  --on-surface-variant: #c5cedb;
+  --primary: #a8c7fa;
+  --on-primary: #102a4c;
+  --outline-variant: #465063;
+  color: #f1f4f9;
+  background: #14171d;
+}
+#screen-score > .topbar,
+#screen-score .bottombar {
+  background: #22262f;
+  color: #f1f4f9;
+}
+.performance-controls select {
+  background: #222a36;
+  color: #f2f5fa;
+  border-radius: 20px;
+  border: 1px solid #526074;
+  padding: 8px;
+}
+
+.assessment-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--on-surface);
+}
+.assessment-controls button {
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  padding: 8px;
+}
+.assessment-controls output {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.performance-focus .performance-controls > :not(#focus-toggle) {
+  display: none !important;
+}

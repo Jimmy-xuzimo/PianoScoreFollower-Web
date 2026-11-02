@@ -8,7 +8,7 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #F4F1EA;
+    background: transparent;
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
@@ -91,3 +91,54 @@ html, body {
     opacity: 0;
     pointer-events: none;
 }
+
+/* Piano Jianpu: one continuous right/left hand system, shared time columns. */
+#stage { padding-bottom:84px; }
+#numbered { padding:20px 22px 35px; color:#191d1b; font-family:system-ui,sans-serif; }
+#numbered[hidden] { display:none; }
+.numbered-heading { font-family:Georgia,serif; text-align:center; font-size:25px; font-weight:600; margin:0 0 16px; }
+.numbered-meta { font-size:15px; margin:0 0 22px 32px; }
+.numbered-system { position:relative; margin:0 0 26px; padding-top:20px; }
+.numbered-system-number { position:absolute; top:0; left:4px; font-size:12px; }
+.numbered-system-body { display:flex; position:relative; align-items:stretch; }
+.numbered-gutter { position:relative; flex:0 0 44px; padding-left:20px; }
+.numbered-brace { position:absolute; left:0; top:0; width:18px; height:100%; }
+.numbered-hand { display:flex; align-items:center; justify-content:center; font-size:10px; color:#627063; writing-mode:vertical-rl; }
+.numbered-bar { position:relative; min-width:0; border-right:1.4px solid currentColor; padding:0 6px; }
+.numbered-bar:nth-child(2) { border-left:1.4px solid currentColor; }
+.numbered-bar.final-bar { border-right:4px double currentColor; }
+.numbered-bar.active { background:rgba(80,145,94,.035); }
+.numbered-lane { display:grid; align-items:center; position:relative; }
+.numbered-cell { position:relative; display:flex; justify-content:flex-start; align-items:center; padding-left:5px; min-width:0; cursor:pointer; font-family:Georgia,serif; font-size:25px; }
+.numbered-cell.active::before { content:''; position:absolute; left:0; top:-14px; bottom:-14px; width:30px; background:rgba(60,142,85,.17); border-radius:4px; }
+.numbered-chord { display:flex; flex-direction:column; align-items:center; }
+.numbered-note { position:relative; display:block; font-size:25px; line-height:29px; margin:9px 0; min-width:16px; text-align:center; }
+.numbered-note:has(.octave.above b:nth-child(2)) { margin-top:15px; }
+.numbered-note:has(.octave.below b:nth-child(2)) { margin-bottom:15px; }
+.octave { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; flex-direction:column; line-height:6px; font-size:17px; }
+.octave b { font-weight:bold; display:block; height:6px; }
+.octave.above { bottom:28px; flex-direction:column-reverse; }
+.numbered-accidental { position:absolute; font-size:15px; left:-12px; top:0; }
+.numbered-dot { position:absolute; left:100%; top:0; }
+.duration-line { position:absolute; left:-1px; right:-1px; height:1.4px; background:currentColor; }
+.numbered-tie { position:absolute; top:-18px; left:-12px; font-size:23px; }
+.numbered-irregular { position:absolute; font-size:9px; top:-19px; }
+.numbered-change { position:absolute; top:-17px; left:2px; font-size:10px; }
+.repeat-start { border-left:4px double currentColor!important; }
+.repeat-end { border-right:4px double currentColor!important; }
+.repeat-start::before,.repeat-end::after { content:':'; position:absolute; font-size:22px; top:36%; }
+.repeat-start::before { left:1px; }.repeat-end::after { right:1px; }
+@media(max-width:500px) { #numbered {padding:16px 10px 30px;} .numbered-heading {font-size:21px;} .numbered-gutter {flex-basis:32px;padding-left:17px;} .numbered-hand {font-size:9px;} }
+
+/* White paper stays independent of the performance controls. */
+#score, #numbered { background:#fff; color:#15181e; }
+#stage { padding:12px 10px 108px; }
+.numbered-system { padding-top:32px; margin-bottom:34px; }
+.numbered-cell { padding-left:14px; }
+.numbered-note { margin:14px 0; }
+.numbered-note:has(.octave.above b:nth-child(2)) { margin-top:21px; }
+.numbered-note:has(.octave.below b:nth-child(2)) { margin-bottom:21px; }
+.numbered-change { top:-26px; background:#fff; padding:2px 4px; }
+.numbered-irregular { top:-27px; left:10px; background:#fff; }
+.numbered-tie { top:-25px; left:2px; }
+.numbered-hand { color:#424b57; }

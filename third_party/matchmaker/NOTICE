@@ -1,0 +1,16 @@
+Matchmaker
+Copyright 2024 The Matchmaker Development Team
+https://github.com/pymatchmaker/matchmaker
+License: Apache License, Version 2.0 (see LICENSE in this directory).
+
+Pinned source revision: 6d73fb717036d60a1cfd6431fbddb4de6705d5c1
+
+Test-only reference adaptations (2026-11-01; not the production follower):
+- LogSpectralEnergy.kt: features/audio.py, LogSpectralEnergyProcessor;
+  streaming windows and the existing radix-2 FFT replace librosa's STFT.
+- ArztOnlineTimeWarping.kt: dp/oltw_arzt.py, OnlineTimeWarpingArztFrame,
+  and dp/dtw_loop.pyx, oltw_arzt_loop; rolling arrays replace NumPy/Cython.
+  The optional tempo and backward-forward extensions are not implemented here.
+
+These adaptations are not upstream Android packages or an upstream endorsement.
+The original project's license continues to apply to its other code.

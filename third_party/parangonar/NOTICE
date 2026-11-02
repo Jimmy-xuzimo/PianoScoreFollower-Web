@@ -1,0 +1,11 @@
+Parangonar, copyright its upstream contributors (including Silvan Peter).
+Apache License 2.0; see LICENSE in this directory.
+Source: https://github.com/sildater/parangonar
+Revision: 40dd1c9029b38cf3d3e78d44e9724d726576e0dc
+Adapted sources: parangonar/dp/t_oltw.py (SLT_OLTW),
+parangonar/dp/metrics.py (tempo_and_pitch_metric).
+Android adaptation: follower/TempoPitchTracker.kt. Kotlin streaming state,
+bounded period, float32 arithmetic and reference extension were added.
+NoteStartLocator and SymbolicScoreFollower integrate this recurrence with
+application navigation, pause handling and confirmed location changes.
+No endorsement by the upstream project is implied.

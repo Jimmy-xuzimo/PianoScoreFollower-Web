@@ -1,0 +1,39 @@
+{
+  "frames": 220,
+  "last": {
+    "eventIndex": 7,
+    "tick": 6736,
+    "measure": 1,
+    "occurrence": 0,
+    "tempo": 91.8672780493078,
+    "confidence": 0.9813906751816099,
+    "status": "WAITING",
+    "similarity": 0.9813906751816099,
+    "anticipatedNotes": [
+      76,
+      52,
+      79
+    ],
+    "onsetPulse": 12,
+    "cursorTick": 6736,
+    "confirmedTick": 6720,
+    "bestSimilarity": 0.9813906751816099,
+    "topPitchClasses": [],
+    "targetPitchClasses": [],
+    "isReady": true
+  },
+  "assessment": "6.2 分 · 正确 12 / 192 · 错 0 · 漏 180 · 多 0",
+  "savedPosition": 6736,
+  "exportedMidi": true,
+  "records": [
+    {
+      "name": "C 大调练习曲（32 小节）",
+      "rawBytes": 50236
+    },
+    {
+      "name": "钢琴录制 2026/11/2 18:43:13",
+      "rawBytes": 150
+    }
+  ],
+  "errors": []
+}

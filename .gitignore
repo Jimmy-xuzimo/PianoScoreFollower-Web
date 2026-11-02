@@ -9,3 +9,7 @@ desktop.ini
 *.log
 __pycache__/
 *.pyc
+node_modules/
+shots/
+
+tools/fixtures/

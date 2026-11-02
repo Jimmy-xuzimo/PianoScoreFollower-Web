@@ -111,7 +111,7 @@
         autoPageTurn: true,
 
         player: {
-            soundfont: 'loading',   /* loading | ready | failed */
+            soundfont: 'idle',   /* loading | ready | failed */
             playing: false,
             requested: false
         },
@@ -213,6 +213,7 @@
     var viewerFrame = $('viewer');
     var viewerQueue = [];
 
+    global.addEventListener('psf-resume-follow',function(){state.userBrowsing=false;postViewer('resumeFollow');});
     function postViewer(method, args) {
         if (!state.viewer.ready) {
             viewerQueue.push({ method: method, args: args || [] });
@@ -249,6 +250,11 @@
                 flushViewerQueue();
                 break;
 
+            case 'seekRequested':
+                state.userBrowsing=false;
+                state.follow.cursorTick=data.tick||0;state.follow.confidence=0;if(state.follow.active)restartFollowing(state.viewer.structure,tempoOf(state.viewer.structure),data.tick||0);break;
+            case 'userBrowsing': state.userBrowsing=true;break;
+            case 'followResumed': state.userBrowsing=false;break;
             case 'scoreLoaded':
                 applyScoreInfo(data);
                 break;
@@ -258,9 +264,13 @@
                 break;
 
             case 'renderFinished':
+                if($('bar-main'))$('bar-main').textContent='示范播放';
+                if($('bar-sub'))$('bar-sub').textContent='音源按需加载';
+                updatePlayButton();
+                if(state.restoreTick>0){postViewer('seekTo',[state.restoreTick]);state.restoreTick=0;}
                 state.viewer.pageCount = data.pageCount || 0;
                 state.viewer.measureCount = data.measureCount || 0;
-                clearLoading();
+                if(state.follow.status!=='PREPARING')clearLoading();
                 updateTopbarButtons();
                 updatePositionChip();
                 break;
@@ -278,13 +288,14 @@
                 break;
 
             case 'error':
+                clearLoading();state.viewer.structure=null;state.timeline=null;state.follow.isReady=false;refreshMicPanel();
                 toast(data.message || '乐谱渲染出错', 'error');
                 break;
         }
     }
 
     function applyScoreInfo(info) {
-        var title = state.notation ? state.notation.name : '智能曲谱';
+        var title = state.notation ? state.notation.name : '智能琴谱';
         var subtitle = [];
         if (info && info.title) subtitle.push(info.title);
         if (info && info.masterBars) subtitle.push(info.masterBars + ' 小节');
@@ -298,12 +309,14 @@
         state.viewer.structure = structure;
         state.viewer.ticksPerQuarter = structure.ticksPerQuarter || 960;
         state.timeline = PianoFollower.buildTimeline(structure);
+        state.follow.isReady=!state.timeline.isEmpty();
+        refreshMicPanel();updateMicTab();
         state.viewer.measureCount = structure.bars ? structure.bars.length : 0;
         state.pageTurner.reset();
 
         /* 结构变了就把新的时间线交给分析线程，让跟谱从第一小节重新开始。 */
         if (state.follow.active) {
-            listening.startFollowing(structure, tempoOf(structure), 0);
+            restartFollowing(structure, tempoOf(structure), 0);
             state.follow.cursorTick = 0;
             state.follow.measure = 0;
             state.follow.confidence = 0;
@@ -376,7 +389,7 @@
     /* ================================================================== */
 
     function evaluatePageTurn(fallbackProgress) {
-        if (!state.autoPageTurn || state.activeKind !== 'notation') return;
+        if (!state.autoPageTurn || state.userBrowsing || state.activeKind !== 'notation' || (state.follow.active && state.follow.status!=='FOLLOWING')) return;
         if (state.viewer.pageCount <= 1) return;
 
         var progress = fallbackProgress;
@@ -459,7 +472,7 @@
         if (notation && state.follow.active) {
             /* 回到记谱谱面，重新把时间线交给分析线程。 */
             if (state.viewer.structure) {
-                listening.startFollowing(state.viewer.structure, tempoOf(state.viewer.structure), state.follow.cursorTick);
+                restartFollowing(state.viewer.structure, tempoOf(state.viewer.structure), state.follow.cursorTick);
             }
         } else if (!notation && state.follow.active) {
             stopFollowing(true);
@@ -484,9 +497,12 @@
 
     function openNotation(entry) {
         if (!entry || !entry.blob) return;
+        if(state.follow.active)stopFollowing(true);
+        state.follow.cursorTick=entry.tick||0;state.restoreTick=entry.tick||0;
         releaseNotationUrl();
 
         state.notation = entry;
+        state.userBrowsing=false;
         entry.url = URL.createObjectURL(entry.blob);
 
         state.viewer.structure = null;
@@ -494,7 +510,7 @@
         state.viewer.measureCount = 0;
         state.timeline = null;
         state.pageTurner.reset();
-        state.player.soundfont = 'loading';
+        state.player.soundfont = 'idle';
         state.player.playing = false;
         state.player.requested = false;
 
@@ -518,7 +534,7 @@
             mode = 'idle';
             if (state.player.soundfont === 'failed') mode = 'failed';
             else if (state.player.playing) mode = 'playing';
-            else if (!state.viewer.ready || state.player.soundfont === 'loading') mode = 'loading';
+            else if (!state.viewer.ready || (state.player.soundfont === 'loading' && state.player.requested)) mode = 'loading';
         }
 
         button.dataset.state = mode;
@@ -545,6 +561,8 @@
         if (state.follow.active) stopFollowing(true);
 
         if (state.player.soundfont !== 'ready') {
+            postViewer('ensureSoundFont');
+            state.player.soundfont='loading';
             state.player.requested = true;
             setLoading('音源加载中…');
             updatePlayButton();
@@ -557,13 +575,32 @@
     /* 麦克风跟谱                                                          */
     /* ================================================================== */
 
+    global.addEventListener('psf-export-score',function(){
+        if(!state.notation){toast('请先打开乐谱','warning');return;}
+        const entry=state.notation,url=URL.createObjectURL(entry.blob),a=document.createElement('a');a.href=url;a.download=(entry.name||'钢琴谱')+(entry.sourceFormat===PianoMidi.ScoreFormat.MUSIC_XML_COMPRESSED?'.mxl':'.musicxml');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    });
+    function restartFollowing(structure,bpm,tick){return state.follow.source==='midi'?listening.startMidiFollowing(structure,tick):listening.startFollowing(structure,bpm,tick);}
+    global.addEventListener('psf-assessment-finish',()=>listening.finishAssessment());
+    global.addEventListener('psf-recording-save',async e=>{try{const record=buildNotationRecord('钢琴录制.mid',e.detail);record.originalBlob=new Blob([e.detail],{type:'audio/midi'});record.name='钢琴录制 '+new Date().toLocaleString();const entry=await PianoLibrary.putNotation(record);openNotation(entry);toast('录制已保存，可用示范播放回放');}catch(error){toast('保存失败：'+error.message,'error');}});
+    global.addEventListener('psf-midi-follow',function(e){
+        if(!state.viewer.structure){toast('MIDI 已连接，可先录制；选谱后可跟谱');return;}
+        if(state.player.playing)postViewer('pause');
+        state.follow.source='midi';
+        if(listening.startMidiFollowing(state.viewer.structure,state.follow.cursorTick||0)){
+            state.follow.active=true;refreshMicPanel();updateMicTab();global.dispatchEvent(new Event('psf-midi-follow-ready'));
+        }
+    });
+    global.addEventListener('psf-midi-observation',e=>listening.sendMidiObservation(e.detail));
+    global.addEventListener('psf-midi-disconnected',()=>{if(state.follow.active)stopFollowing(true);toast('MIDI 已断开，录制数据仍保留','warning');});
     listening.onFrame = function (frame) {
         updateMeter(frame);
         if (frame.follow) applyFollow(frame.follow);
         else if (frame.calibration) applyCalibration(frame.calibration);
     };
 
+    listening.onModeReady=function(mode){if(mode==='preparing'){state.follow.status='PREPARING';setLoading('正在准备钢琴模型，请稍候再弹奏…');}else if(mode==='follow'){state.follow.status='WAITING';clearLoading();toast('跟谱输入已就绪，可以开始演奏');}};
     listening.onError = function (message) {
+        clearLoading();
         toast(message, 'error');
         if (state.follow.active) stopFollowing(true);
         if (state.tuner.running) stopTuner();
@@ -579,6 +616,7 @@
     var lastCursorPost = 0;
 
     function applyFollow(follow) {
+        state.follow.status=follow.status;
         state.follow.cursorTick = follow.cursorTick || 0;
         state.follow.measure = follow.measure || 0;
         state.follow.confidence = follow.confidence || 0;
@@ -591,6 +629,8 @@
         var now = Date.now();
         if (now - lastCursorPost > 45) {
             lastCursorPost = now;
+            postViewer('setFollowAnchor',[follow.confirmedTick||0]);
+            postViewer('setNavigation',[localStorage.getItem('psf-navigation')||'line',follow.status==='FOLLOWING'&&state.autoPageTurn&&!state.userBrowsing]);
             postViewer('setCursorTick', [state.follow.cursorTick]);
         }
 
@@ -616,7 +656,7 @@
             main.textContent = '第 ' + (state.follow.measure + 1) + ' / ' + state.viewer.measureCount + ' 小节';
         }
         if (sub) {
-            sub.textContent = state.follow.isReady
+            if(state.follow.active&&state.follow.status!=='FOLLOWING'){sub.textContent=({WAITING:'等待演奏',LOCATING:'定位中，请继续演奏',LOST:'暂时失配，可点谱重新定位'})[state.follow.status]||'正在准备';}else sub.textContent = state.follow.isReady
                 ? '相似度 ' + Math.round((state.follow.lastSimilarity || 0) * 100) + '%'
                 : '等待乐谱';
         }
@@ -646,25 +686,26 @@
     }
 
     async function startFollowing() {
-        if (state.follow.active) return;
+        if (state.follow.active||state.follow.starting) return;
         if (state.activeKind !== 'notation' || !state.viewer.structure) {
             toast('先打开一份 MIDI / MusicXML 乐谱再跟谱', 'warning');
             return;
         }
         if (state.player.playing) postViewer('pause');
 
+        state.follow.starting=true;
+        state.follow.source='microphone';
         setLoading('正在打开麦克风…');
         var started = await listening.start();
+        state.follow.starting=false;
         if (!started) {
             clearLoading();
             return;
         }
         clearLoading();
 
-        listening.startFollowing(state.viewer.structure, tempoOf(state.viewer.structure), 0);
+        restartFollowing(state.viewer.structure, tempoOf(state.viewer.structure), state.follow.cursorTick||0);
         state.follow.active = true;
-        state.follow.cursorTick = 0;
-        state.follow.measure = 0;
         state.follow.confidence = 0;
         state.follow.onsetPulse = 0;
         peakLevelDb = MIN_LEVEL_DB;
@@ -672,15 +713,18 @@
         state.pageTurner.reset();
         refreshMicPanel();
         updateMicTab();
-        toast('跟谱已开始，弹奏钢琴即可自动定位');
+        setLoading('正在准备钢琴模型，请稍候再弹奏…');
     }
 
     function stopFollowing(silent) {
-        if (!state.follow.active) return;
+        if (!state.follow.active && !state.follow.starting) return;
+        clearLoading();state.follow.starting=false;
         state.follow.active = false;
         state.follow.confidence = 0;
-        listening.stopAnalysis();
+        if(state.notation&&state.activeKind==='notation'){state.notation.tick=state.follow.cursorTick||0;PianoLibrary.putNotation(state.notation).catch(e=>toast('保存练习位置失败：'+e.message,'error'));}
+        listening.stop();
         postViewer('hideCursor');
+        postViewer('setFollowAnchor',[null]);
         refreshMicPanel();
         updateMicTab();
         if (!silent) toast('已停止跟谱');
@@ -1024,7 +1068,7 @@
 
     function stopTuner() {
         state.tuner.running = false;
-        listening.stopAnalysis();
+        listening.stop();
         if (!state.follow.active) listening.stop();
         var button = $('btn-tuner-toggle');
         if (button) button.innerHTML = icon('i-mic') + '开始监听';
@@ -1038,6 +1082,7 @@
         state.tuner.state = calibration;
         state.tuner.hasCalibration = calibration.hasCalibration;
         state.tuner.offsetCents = calibration.offsetCents;
+        if(calibration.hasCalibration) localStorage.setItem("psf-tuning",String(calibration.offsetCents||0));
 
         var noteEl = $('tuner-note');
         var octaveEl = $('tuner-octave');
@@ -1210,12 +1255,13 @@
             state.follow.confidence = 0;
             state.pageTurner.reset();
             if (state.follow.active) {
-                listening.startFollowing(state.viewer.structure, tempoOf(state.viewer.structure), 0);
+                restartFollowing(state.viewer.structure, tempoOf(state.viewer.structure), 0);
             }
             refreshFollowUi();
         });
         $('btn-autoturn').addEventListener('click', function () {
             state.autoPageTurn = !state.autoPageTurn;
+            postViewer('setNavigation',[localStorage.getItem('psf-navigation')||'line',state.autoPageTurn&&!state.userBrowsing]);
             this.dataset.on = state.autoPageTurn ? 'true' : 'false';
             toast(state.autoPageTurn ? '自动翻页已开启' : '自动翻页已关闭');
         });
@@ -1450,6 +1496,7 @@
             sourceFormat: prepared.sourceFormat,
             renderFormat: prepared.renderFormat,
             size: blob.size,
+            originalBlob:new Blob([bytes],{type:format===PianoMidi.ScoreFormat.MIDI?"audio/midi":"application/octet-stream"}),
             blob: blob
         };
     }
@@ -1609,7 +1656,7 @@
                 $('notation-stage').hidden = true;
                 $('scroll-viewport').hidden = true;
                 $('bar-layer').hidden = true;
-                setTitle('智能曲谱', '导入 MIDI / MusicXML / PDF / 照片开始');
+                setTitle('智能琴谱', '导入 MIDI / MusicXML / PDF / 照片开始');
             }
             toast('已删除');
             refreshSettingsScreen();
@@ -1688,6 +1735,9 @@
             title: '更多操作',
             subtitle: '只影响当前打开的乐谱，乐谱库里的文件不会被删掉',
             body:
+                (notation && state.notation.originalBlob
+                    ? '<button class="import-option" id="more-export-original" type="button"><span class="import-option__text"><strong>导出原始文件</strong><span>MIDI 保留录制的原始时间、力度和踏板</span></span></button>'
+                    : '') +
                 '<button class="import-option" id="more-clear" type="button"' + (hasOpen ? '' : ' disabled') + '>' +
                     '<span class="import-option__icon">' + icon('i-delete') + '</span>' +
                     '<span class="import-option__text"><strong>清除当前乐谱</strong>' +
@@ -1710,6 +1760,16 @@
             foot: '<button class="text-btn" id="more-cancel" type="button">关闭</button>',
             onOpen: function (root) {
                 root.querySelector('#more-cancel').addEventListener('click', closeDialog);
+                var exportOriginal = root.querySelector('#more-export-original');
+                if (exportOriginal) exportOriginal.addEventListener('click', function () {
+                    var entry = state.notation, link = document.createElement('a');
+                    var url = URL.createObjectURL(entry.originalBlob);
+                    link.href = url;
+                    link.download = entry.name + (entry.sourceFormat === PianoMidi.ScoreFormat.MIDI ? '.mid' : entry.sourceFormat === PianoMidi.ScoreFormat.MUSIC_XML_COMPRESSED ? '.mxl' : '.musicxml');
+                    link.click();
+                    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+                    closeDialog();
+                });
 
                 var clearButton = root.querySelector('#more-clear');
                 if (clearButton) {
@@ -1772,7 +1832,7 @@
         $('notation-stage').hidden = true;
         $('scroll-viewport').hidden = true;
         $('bar-layer').hidden = true;
-        setTitle('智能曲谱', '导入 MIDI / MusicXML / PDF / 照片开始');
+        setTitle('智能琴谱', '导入 MIDI / MusicXML / PDF / 照片开始');
         updateTopbarButtons();
         refreshMicPanel();
         toast('已清除当前乐谱');
@@ -1879,7 +1939,7 @@
         var orientation = PianoPlatform.currentOrientation();
         var deviceLabel = device === 'phone' ? '手机' : (device === 'tablet' ? '平板' : '桌面');
         var about = [
-            ['应用', '智能曲谱（网页端）'],
+            ['应用', '智能琴谱（网页端）'],
             ['版本', 'web-1.0.0'],
             ['排版引擎', 'alphaTab'],
             ['设备识别', deviceLabel + ' · ' + (orientation === 'portrait' ? '竖屏' : '横屏')],
@@ -1939,7 +1999,7 @@
                             $('notation-stage').hidden = true;
                             $('scroll-viewport').hidden = true;
                             $('bar-layer').hidden = true;
-                            setTitle('智能曲谱', '导入 MIDI / MusicXML / PDF / 照片开始');
+                            setTitle('智能琴谱', '导入 MIDI / MusicXML / PDF / 照片开始');
                             closeDialog();
                             toast('已清空本地乐谱');
                             refreshSettingsScreen();
@@ -2000,6 +2060,7 @@
         $('btn-tuner-reset').addEventListener('click', function () {
             state.tuner.hasCalibration = false;
             state.tuner.offsetCents = 0;
+            localStorage.removeItem("psf-tuning");
             if (state.tuner.running) listening.resetCalibration();
             resetTunerRing();
             renderTunerStats();
@@ -2047,7 +2108,7 @@
         /* 切到后台就停止采集并暂停，免得离开页面后麦克风还在录、音频还在响。 */
         doc.addEventListener('visibilitychange', function () {
             if (!doc.hidden) return;
-            if (state.follow.active) stopFollowing(true);
+            if (state.follow.active||state.follow.starting) stopFollowing(true);
             if (state.tuner.running) stopTuner();
             if (state.player.playing) postViewer('pause');
             if (state.scrollPlay.playing) toggleScrollPlayback(false);
@@ -2118,9 +2179,9 @@
         $('notation-stage').hidden = true;
         $('scroll-viewport').hidden = true;
         $('bar-layer').hidden = true;
-        setTitle('智能曲谱', '导入 MIDI / MusicXML / PDF / 照片开始');
+        setTitle('智能琴谱', '导入 MIDI / MusicXML / PDF / 照片开始');
 
-        restoreLastOpened().then(function (restored) {
+        Promise.resolve(false).then(function (restored) {
             if (!restored) refreshSettingsScreen();
         }).catch(function () { refreshSettingsScreen(); });
     }

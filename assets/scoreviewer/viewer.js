@@ -16,6 +16,8 @@
     var stageEl = document.getElementById('stage');
     var scoreEl = document.getElementById('score');
     var cursorLayerEl = document.getElementById('cursorLayer');
+    var followAnchorTick=null, navigationAnchor=new window.FollowNavigation.Anchor();
+    var notationMode = 'staff', numberedEl = document.getElementById('numbered'), numberedGraph = null;
     var hintEl = document.getElementById('hint');
 
     var PAGE_TOP_MARGIN = 6;
@@ -29,6 +31,11 @@
     var FOLLOW_ANCHOR_RATIO = 0.32;
 
     var api = null;
+    var generation = 0, layoutVersion = 0, loadRequest = 0;
+    var requestedPage = -1;
+    var selectedStaffs = null;
+    var selectedTracks = null, navigationMode = 'line', userBrowsing = false;
+    var fontRequested = false;
     var systems = [];
     var pages = [];
     var systemPageIndex = [];
@@ -43,6 +50,8 @@
     var hintTimer = null;
     var ready = false;
     var playerReady = false;
+    var fontWanted = false;
+    var fontWaitTimer = null;
     var soundFontReady = false;
     var soundFontTimer = null;
     var resizeTimer = null;
@@ -52,6 +61,7 @@
 
     /** Last tick the cursor was placed at, so a relayout can restore it. */
     var lastCursorTick = -1;
+    var lastPlaybackReport = 0;
 
     /* Tap detection, so a scroll drag is not mistaken for a seek. */
     var touchSeen = false;
@@ -64,17 +74,9 @@
 
     function post(type, payload) {
         try {
-            var msg = Object.assign({ type: type }, payload || {});
+            var msg = Object.assign({ type: type, generation: generation, layoutVersion: layoutVersion }, payload || {});
             if (window.AndroidHost && window.AndroidHost.postEvent) {
                 window.AndroidHost.postEvent(JSON.stringify(msg));
-            }
-            /*
-             * The very same page also runs as a plain iframe inside the web build, where
-             * no AndroidHost exists: events go to the embedding document over postMessage
-             * and commands come back the same way.
-             */
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage(msg, '*');
             }
         } catch (e) {
             /* the host may be absent when the page is opened in a desktop browser */
@@ -126,7 +128,7 @@
                 scale: responsiveScale(),
                 stretchForce: 1.0,
                 justifyLastSystem: true,
-                padding: [10, 14, 12, 14],
+                padding: [24, 22, 28, 22],
                 firstSystemPaddingTop: 6,
                 resources: {
                     staffLineColor: '#2A3038',
@@ -134,7 +136,7 @@
                     mainGlyphColor: '#14181D',
                     secondaryGlyphColor: '#14181D',
                     scoreInfoColor: '#14181D',
-                    barNumberColor: '#8A94A2'
+                    barNumberColor: '#535c69'
                 }
             },
             player: {
@@ -144,7 +146,8 @@
                  * bank that ships with alphaTab: the GM piano is a handful of short
                  * loops and sounds thin and lifeless on sustained chords.
                  */
-                soundFont: '../alphatab/soundfont/piano.sf2',
+                soundFont: '',
+                enableElementHighlighting: false,
                 // The app draws its own cursor so the microphone follower and the
                 // player can share one highlight and one page-turn pipeline.
                 enableCursor: false,
@@ -161,7 +164,7 @@
 
         api.error.on(function (err) {
             var message = err && err.message ? err.message : String(err);
-            post('error', { message: message });
+            post('error', { message: '无法读取乐谱，请检查文件是否完整。' + (message ? '（' + message + '）' : '') });
         });
 
         api.scoreLoaded.on(function (score) {
@@ -175,6 +178,7 @@
         api.playerReady.on(function () {
             playerReady = true;
             post('playerState', { state: 'ready' });
+            if (fontWanted) ensureSoundFont();
         });
 
         api.soundFontLoaded.on(function () {
@@ -189,18 +193,22 @@
 
         api.playerStateChanged.on(function (args) {
             var playing = args && args.state === 1;
+            if (!playing && ready) post('playbackPosition', {tick: Math.max(0,api.tickPosition)});
             post('playerState', { state: playing ? 'playing' : 'paused' });
         });
 
         // Playback drives the very same cursor the microphone follower uses, so the
         // page-turn logic needs no separate path for the player.
         api.playerPositionChanged.on(function (args) {
-            if (!ready) return;
+            if (!ready || api.playerState !== 1) return;
             var tick = args && typeof args.currentTick === 'number'
                 ? args.currentTick
                 : api.tickPosition;
             if (typeof tick !== 'number' || tick < 0) return;
             setCursorTick(tick);
+            if (Date.now()-lastPlaybackReport > 200) {
+                lastPlaybackReport=Date.now(); post('playbackPosition',{tick:Math.round(tick)});
+            }
         });
 
         // alphaTab only turns a click into a beat through its mouse handler, and a
@@ -244,10 +252,8 @@
      * absolute value are detected by the value being past the bar's own start.
      */
     function absoluteTickOfBeat(beat) {
-        if (!beat || typeof beat.playbackStart !== 'number') return -1;
-        var masterBar = beat.voice && beat.voice.bar ? beat.voice.bar.masterBar : null;
-        var barStart = masterBar && typeof masterBar.start === 'number' ? masterBar.start : 0;
-        return beat.playbackStart >= barStart ? beat.playbackStart : barStart + beat.playbackStart;
+        if (!beat || !api || !api.tickCache) return -1;
+        return api.tickCache.getBeatStart(beat);
     }
 
     function installTapTracking() {
@@ -276,6 +282,7 @@
             // Roughly 10px of slop: anything beyond that was a scroll, not a tap.
             if (dx * dx + dy * dy > 100) return;
 
+            if(notationMode==='numbered') return;
             var beat = beatAtClientPos(touch.clientX, touch.clientY);
             var tick = absoluteTickOfBeat(beat);
             if (tick < 0) return;
@@ -306,7 +313,8 @@
             }
         }
         post('scoreLoaded', info);
-        post('scoreStructure', buildStructure(score));
+        try { post('scoreStructure', buildStructure(score)); }
+        catch (e) { post('error', { message:e.message || String(e) }); }
     }
 
     /*
@@ -316,97 +324,21 @@
      * independent and therefore tolerant of the register a piece is played in.
      */
     function buildStructure(score) {
-        var quarterTime = (AT.MidiUtils && AT.MidiUtils.QuarterTime) ? AT.MidiUtils.QuarterTime : 960;
-        var result = { ticksPerQuarter: quarterTime, bars: [] };
-
-        var track = score.tracks && score.tracks.length > 0 ? score.tracks[0] : null;
-        var masterBarCount = score.masterBars ? score.masterBars.length : 0;
-        if (!track || !track.staves || masterBarCount === 0) return result;
-
-        for (var mb = 0; mb < masterBarCount; mb++) {
-            var masterBar = score.masterBars[mb];
-            var events = [];
-
-            for (var s = 0; s < track.staves.length; s++) {
-                var bar = track.staves[s].bars ? track.staves[s].bars[mb] : null;
-                if (!bar || !bar.voices) continue;
-
-                for (var v = 0; v < bar.voices.length; v++) {
-                    var voice = bar.voices[v];
-                    if (!voice || !voice.beats) continue;
-
-                    for (var b = 0; b < voice.beats.length; b++) {
-                        var beat = voice.beats[b];
-                        var notes = beat.notes || [];
-                        if (notes.length === 0) continue;
-
-                        var seen = {};
-                        var classes = [];
-                        for (var n = 0; n < notes.length; n++) {
-                            var value = notes[n].realValue;
-                            if (value === undefined || value === null) continue;
-                            var pitchClass = ((value % 12) + 12) % 12;
-                            if (!seen[pitchClass]) {
-                                seen[pitchClass] = true;
-                                classes.push(pitchClass);
-                            }
-                        }
-                        if (classes.length === 0) continue;
-
-                        events.push({
-                            tick: absoluteTickOfBeat(beat),
-                            notes: classes,
-                            duration: beat.playbackDuration
-                        });
-                    }
-                }
-            }
-
-            events.sort(function (a, b) { return a.tick - b.tick; });
-            result.bars.push({
-                index: mb,
-                tempo: masterBar && masterBar.tempo ? masterBar.tempo : 100,
-                events: mergeSameTick(events)
-            });
+        if (!selectedTracks) {
+            selectedTracks = score.tracks.map(function(t,i) { return {t:t,i:i}; })
+                .filter(function(x) { var p=x.t.playbackInfo; return p && p.program >= 0 && p.program <= 7; })
+                .map(function(x) { return x.i; });
+            if (!selectedTracks.length) selectedTracks = score.tracks.map(function(t,i) { return i; });
         }
-
-        return result;
-    }
-
-    /* Both hands frequently attack on the same tick; one event should describe both. */
-    function mergeSameTick(events) {
-        var merged = [];
-        for (var i = 0; i < events.length; i++) {
-            var current = events[i];
-            var previous = merged.length > 0 ? merged[merged.length - 1] : null;
-            if (previous && previous.tick === current.tick) {
-                var set = {};
-                var combined = [];
-                var sources = [previous.notes, current.notes];
-                for (var s = 0; s < sources.length; s++) {
-                    for (var n = 0; n < sources[s].length; n++) {
-                        var pitchClass = sources[s][n];
-                        if (!set[pitchClass]) {
-                            set[pitchClass] = true;
-                            combined.push(pitchClass);
-                        }
-                    }
-                }
-                previous.notes = combined;
-                previous.duration = Math.max(previous.duration, current.duration);
-            } else {
-                merged.push({
-                    tick: current.tick,
-                    notes: current.notes.slice(),
-                    duration: current.duration
-                });
-            }
-        }
-        return merged;
+        return window.ScoreGraphExporter.build(AT, score, selectedTracks, selectedStaffs);
     }
 
     function onRenderFinished() {
+        layoutVersion++;
+        if(notationMode==='numbered') renderNumbered();
         buildLayout();
+        navigationAnchor.reset(followAnchorTick,systemForTick(followAnchorTick));
+        lastFollowedSystem = -1; requestedPage = -1;
         ready = true;
         var barCounts = [];
         for (var i = 0; i < systems.length; i++) barCounts.push(systems[i].bars.length);
@@ -448,6 +380,7 @@
     /* ------------------------------------------------------------------ */
 
     function surfaceOffsetY() {
+        if(notationMode==='numbered') return 0;
         var sr = scoreEl.getBoundingClientRect();
         var st = stageEl.getBoundingClientRect();
         return sr.top - st.top;
@@ -458,6 +391,7 @@
     }
 
     function buildLayout() {
+        if(notationMode==='numbered') { buildNumberedLayout(); return; }
         systems = [];
         var lookup = api.renderer ? api.renderer.boundsLookup : null;
         if (lookup && lookup.staffSystems) {
@@ -520,7 +454,7 @@
         systemPageIndex = new Array(systems.length).fill(0);
         if (systems.length === 0) return;
 
-        var viewportHeight = viewportEl.clientHeight;
+        var viewportHeight = Math.max(100,viewportEl.clientHeight-84);
         var current = null;
 
         for (var i = 0; i < systems.length; i++) {
@@ -602,6 +536,7 @@
 
     function hideCursor() {
         if (beatCursorEl) beatCursorEl.style.display = 'none';
+        numberedEl.querySelectorAll('.active').forEach(function(e){e.classList.remove('active');});
     }
 
     function resolveBeat(tick) {
@@ -618,7 +553,8 @@
         } catch (e) {
             result = null;
         }
-        if (!result || !result.beat) return null;
+        if (!result || !(result.beat || result.currentBeat)) return null;
+        result.beat = result.beat || result.currentBeat;
 
         var beatBounds = lookup.findBeat(result.beat);
         if (!beatBounds) return null;
@@ -629,6 +565,7 @@
     function setCursorTick(tick) {
         if (!ready) return null;
         lastCursorTick = tick;
+        if(notationMode==='numbered') return numberedCursor(tick);
         var resolved = resolveBeat(tick);
         if (!resolved) {
             hideCursor();
@@ -644,7 +581,9 @@
         var masterBarIndex = masterBarIndexOfBeat(resolved.beat);
         var pageIndex = pageIndexOfMasterBar(masterBarIndex);
         var isLastMeasureOfPage = false;
-        var systemIndex = masterBarIndex >= 0 ? systemIndexOfMasterBar(masterBarIndex) : -1;
+        var navigationBar=masterBarIndex;
+        if(followAnchorTick!==null) {var anchored=resolveBeat(followAnchorTick);if(anchored)navigationBar=masterBarIndexOfBeat(anchored.beat);}
+        var systemIndex = navigationBar >= 0 ? systemIndexOfMasterBar(navigationBar) : -1;
 
         /*
          * The cursor is one bar spanning the top (treble) staff of the current system.
@@ -674,7 +613,7 @@
         // Following advances a line at a time: the view is only re-anchored when the
         // music moves on to another staff system, so a manual scroll within the
         // current line is never fought.
-        if (followCursor && systemIndex >= 0 && systemIndex !== lastFollowedSystem) {
+        if (followCursor && !userBrowsing && navigationMode === 'line' && systemIndex >= 0 && systemIndex !== lastFollowedSystem) {
             lastFollowedSystem = systemIndex;
             ensureSystemVisible(systemIndex, true);
         }
@@ -745,7 +684,7 @@
         var bottom = top + system.h;
         var viewTop = viewportEl.scrollTop;
         var viewBottom = viewTop + viewportEl.clientHeight;
-        var margin = Math.max(10, viewportEl.clientHeight * 0.06);
+        var margin = Math.min(viewportEl.clientHeight*.25, Math.max(84, viewportEl.clientHeight * 0.06));
         if (top >= viewTop + margin && bottom <= viewBottom - margin) return false;
         return scrollToSystem(index, smooth);
     }
@@ -760,7 +699,7 @@
         var scrollTop = viewportEl.scrollTop;
         var best = 0;
         for (var i = 0; i < pages.length; i++) {
-            if (pages[i].topY <= scrollTop + 8) best = i;
+            if (pages[i].topY <= scrollTop + Math.min(100,viewportEl.clientHeight*.15) + 8) best = i;
         }
         return best;
     }
@@ -809,17 +748,22 @@
             soundFontTimer = null;
             if (!soundFontReady) {
                 console.log('[viewer] soundfont load timed out');
+                fontWanted = false;
+                if (fontWaitTimer) { clearTimeout(fontWaitTimer); fontWaitTimer=null; }
                 post('playerState', { state: 'soundfontFailed' });
             }
         }, SOUNDFONT_TIMEOUT_MS);
     }
 
-    async function loadScore(url) {
+    async function loadScore(url, nextGeneration, restoreTick) {
+        if ((nextGeneration || 0) !== generation) layoutVersion = 0;
+        generation = nextGeneration || 0; followAnchorTick=null; navigationAnchor.reset(null,-1);
+        selectedTracks = null; selectedStaffs = null; userBrowsing = false;
+        var request = ++loadRequest;
         if (!api) return false;
         lastScoreUrl = url;
         ready = false;
-        playerReady = false;
-        lastCursorTick = -1;
+        lastCursorTick = typeof restoreTick === "number" ? restoreTick : -1;
         hideCursor();
         lastMasterBarIndex = -1;
         lastReportedPage = -1;
@@ -830,6 +774,7 @@
                 return false;
             }
             var buffer = await response.arrayBuffer();
+            if (request !== loadRequest) return false;
             /*
              * The synth decodes the soundfont once and keeps it for the lifetime of
              * the page, so a second score must not wait for a `soundFontLoaded` event
@@ -838,8 +783,6 @@
              */
             if (soundFontReady) {
                 post('playerState', { state: 'soundfontLoaded' });
-            } else {
-                armSoundFontWatchdog();
             }
             api.load(new Uint8Array(buffer));
             return true;
@@ -854,6 +797,8 @@
      * new synth, which is what makes alphaTab fetch and decode the soundfont again.
      */
     function retrySoundFont() {
+        var restoreTick=lastCursorTick;
+        if (fontWaitTimer) { clearTimeout(fontWaitTimer); fontWaitTimer=null; }
         if (!api) return false;
         if (soundFontTimer) {
             clearTimeout(soundFontTimer);
@@ -867,11 +812,12 @@
         api = null;
         ready = false;
         playerReady = false;
-        soundFontReady = false;
+        soundFontReady = false; fontRequested = false;
         lastMasterBarIndex = -1;
         lastReportedPage = -1;
         initApi();
-        if (lastScoreUrl) loadScore(lastScoreUrl);
+        if (lastScoreUrl) loadScore(lastScoreUrl,generation,restoreTick);
+        ensureSoundFont();
         return true;
     }
 
@@ -898,6 +844,9 @@
     function seekTo(tick) {
         if (!api) return false;
         var target = Math.max(0, Math.round(tick));
+        userBrowsing = false;
+        if(followAnchorTick!==null){followAnchorTick=target;navigationAnchor.reset(target,systemForTick(target));}
+        post('seekRequested', { tick: target });
         try {
             api.tickPosition = target;
         } catch (e) {
@@ -915,6 +864,8 @@
 
     function play() {
         if (!api || !ready) return false;
+        if (!soundFontReady) { ensureSoundFont(); return false; }
+        if(lastCursorTick>=0) api.tickPosition=lastCursorTick;
         api.play();
         return true;
     }
@@ -947,7 +898,118 @@
         return typeof tick === 'number' ? tick : -1;
     }
 
+    function ensureSoundFont() {
+        fontWanted = true;
+        if (soundFontReady || fontRequested) return;
+        if (!soundFontTimer) armSoundFontWatchdog();
+        // playerReady means MIDI + soundfont are both ready; it cannot gate the
+        // first font load. Wait for the synth instance itself instead.
+        if (!api.player || !api.player.isReady) {
+            if (!fontWaitTimer) {
+                var waitingApi=api;
+                fontWaitTimer=setTimeout(function() {
+                    fontWaitTimer=null;
+                    if(api===waitingApi && fontWanted) ensureSoundFont();
+                },100);
+            }
+            return;
+        }
+        fontRequested = true;
+        api.loadSoundFont('../alphatab/soundfont/piano.sf2');
+    }
+    function setNavigation(mode, allowed) {
+        navigationMode = mode; followCursor = !!allowed;
+    }
+    function resumeFollow() {
+        userBrowsing = false; requestedPage = -1; lastFollowedSystem = -1;
+        if (lastCursorTick >= 0) { var r = setCursorTick(lastCursorTick); if (r) scrollToMasterBar(r.measure || lastMasterBarIndex); }
+    }
+    function browse() {
+        if (!userBrowsing) { requestedPage = -1; userBrowsing = true; post('userBrowsing'); }
+    }
+    viewportEl.addEventListener('wheel', browse, {passive:true});
+    viewportEl.addEventListener('touchmove', function(e) {
+        if (e.touches.length && Math.abs(e.touches[0].clientY - tapStartY) > 12) browse();
+    }, {passive:true});
+    function renderNumbered() {
+        numberedGraph=buildStructure(api.score); numberedGraph.selectedStaffs=selectedStaffs;
+        window.NumberedScore.render(numberedEl,numberedGraph,api.score,function(tick,measure){
+            var visits=numberedGraph.bars.filter(function(b){return b.index===measure;});
+            var base=visits[0], current=visits.find(function(b){return lastCursorTick>=b.start && lastCursorTick<b.end;}) || base;
+            seekTo(current.start+(tick-base.start));
+        });
+    }
+    function buildNumberedLayout() {
+        systems=[];
+        numberedEl.querySelectorAll('.numbered-system').forEach(function(el,i){
+            var y=el.offsetTop;
+            systems.push({index:i,y:y,h:el.offsetHeight,trebleTop:y,trebleHeight:el.offsetHeight,
+                bars:Array.from(el.querySelectorAll('.numbered-bar')).map(function(b){return {index:Number(b.dataset.measure)};})});
+        });
+        computePages(); cursorLayerEl.style.height='0px';
+    }
+    function systemForTick(tick) {
+        if(tick===null)return -1;
+        if(notationMode==='numbered' && numberedGraph){var bar=numberedGraph.bars.find(function(b){return tick>=b.start && tick<b.end;});return bar?systemIndexOfMasterBar(bar.index):-1;}
+        var resolved=resolveBeat(tick);return resolved?systemIndexOfMasterBar(masterBarIndexOfBeat(resolved.beat)):-1;
+    }
+    function setNotationMode(mode) {
+        mode=mode==='numbered'?'numbered':'staff';
+        if(mode===notationMode)return;
+        notationMode=mode;
+        // Keep alphaTab at its real width for layout and playback mapping.
+        scoreEl.style.position=mode==='numbered'?'absolute':'';
+        scoreEl.style.visibility=mode==='numbered'?'hidden':'';
+        scoreEl.style.pointerEvents=mode==='numbered'?'none':'';
+        numberedEl.hidden=mode!=='numbered';
+        if(beatCursorEl)beatCursorEl.style.display='none';
+        if(api.score && ready)onRenderFinished();
+    }
+    function numberedCursor(tick) {
+        if(!numberedGraph)return null;
+        var bar=numberedGraph.bars.find(function(b){return tick>=b.start && tick<b.end;}) || numberedGraph.bars[numberedGraph.bars.length-1];
+        if(!bar)return null;
+        var first=numberedGraph.bars.find(function(b){return b.index===bar.index;}), local=tick-bar.start;
+        numberedEl.querySelectorAll('.active').forEach(function(e){e.classList.remove('active');});
+        var el=numberedEl.querySelector('[data-measure="'+bar.index+'"]');
+        if(el) {
+            el.classList.add('active');
+            el.querySelectorAll('.numbered-lane').forEach(function(row){
+                var target=first.start+local;
+                Array.from(row.children).filter(function(c){return Number(c.dataset.tick)<=target && Number(c.dataset.end)>target;}).forEach(function(c){c.classList.add('active');});
+            });
+        }
+        var anchorBar=followAnchorTick===null?null:numberedGraph.bars.find(function(b){return followAnchorTick>=b.start && followAnchorTick<b.end;});
+        var si=systemIndexOfMasterBar(anchorBar?anchorBar.index:bar.index), page=pageIndexOfMasterBar(bar.index);
+        if(followCursor && !userBrowsing && navigationMode==='line' && si!==lastFollowedSystem){lastFollowedSystem=si;ensureSystemVisible(si,true);}
+        if(lastMasterBarIndex!==bar.index){lastMasterBarIndex=bar.index;post('positionChanged',{measure:bar.index,page:page,pageCount:pages.length,isLastMeasureOfPage:pages[page]&&pages[page].lastMasterBar===bar.index});}
+        return {measure:bar.index,page:page,pageCount:pages.length};
+    }
     window.PianoScoreViewer = {
+        setFollowAnchor:function(tick){tick=typeof tick==='number'?tick:null;followAnchorTick=navigationAnchor.update(tick,systemForTick(tick),performance.now());},
+        setNotationMode:setNotationMode,
+        setPracticeSpeed:function(speed){api.playbackSpeed=speed;},
+        ensureVisible: function(measure) {
+            if (userBrowsing || !followCursor) return;
+            if(followAnchorTick!==null) {
+                if(notationMode==='numbered' && numberedGraph){var anchoredBar=numberedGraph.bars.find(function(b){return followAnchorTick>=b.start&&followAnchorTick<b.end;});if(anchoredBar)measure=anchoredBar.index;}
+                else {var anchored=resolveBeat(followAnchorTick);if(anchored)measure=masterBarIndexOfBeat(anchored.beat);}
+            }
+            var page = pageIndexOfMasterBar(measure);
+            if (page >= 0 && page !== requestedPage && page !== currentPageIndex()) {
+                requestedPage = page;
+                var previous = pages[Math.max(0,page-1)];
+                var overlap = previous && page > 0 ? Math.min(100, viewportEl.clientHeight * .15) : 0;
+                viewportEl.scrollTo({top: Math.max(0,pages[page].topY-overlap), behavior:'smooth'});
+            }
+        },
+        diagnostics: function() { return { generation:generation, layoutVersion:layoutVersion, tick:lastCursorTick, playing:api.playerState, font:api.settings.player.soundFont, fontReady:soundFontReady, request:fontRequested, synthReady:playerReady, ready:ready, notation:notationMode, followAnchor:followAnchorTick, followedSystem:lastFollowedSystem }; },
+        exportGraph: function() { return buildStructure(api.score); },
+        ensureSoundFont: ensureSoundFont,
+        setNavigation: setNavigation,
+        resumeFollow: resumeFollow,
+        setStaffs: function(staffs) { selectedStaffs=staffs; post('scoreStructure',buildStructure(api.score)); if(notationMode==='numbered')onRenderFinished(); },
+        setTracks: function(tracks) { selectedTracks = tracks; post('scoreStructure', buildStructure(api.score)); if(notationMode==='numbered')onRenderFinished(); },
         loadScore: loadScore,
         setCursorTick: setCursorTick,
         hideCursor: hideCursor,
@@ -1037,23 +1099,6 @@
 
     window.addEventListener('resize', scheduleRelayout);
     window.addEventListener('orientationchange', scheduleRelayout);
-
-    /*
-     * Web host bridge. The Android build reaches in with evaluateJavascript; a browser
-     * host cannot, so the same public API is exposed over postMessage instead. Keeping
-     * one viewer for both platforms is what makes the web version behave identically.
-     */
-    window.addEventListener('message', function (event) {
-        var data = event.data;
-        if (!data || typeof data !== 'object' || data.pianoViewer !== true) return;
-        var viewer = window.PianoScoreViewer;
-        if (!viewer || typeof viewer[data.method] !== 'function') return;
-        try {
-            viewer[data.method].apply(viewer, data.args || []);
-        } catch (e) {
-            post('error', { message: 'viewer 命令失败: ' + (e && e.message ? e.message : e) });
-        }
-    });
 
     initApi();
     post('viewerReady', {});

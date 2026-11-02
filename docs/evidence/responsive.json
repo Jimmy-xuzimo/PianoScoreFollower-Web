@@ -1,0 +1,41 @@
+[
+  {
+    "name": "phone",
+    "outer": {
+      "overflow": false,
+      "headerClipped": false,
+      "toolsCoverScore": false
+    },
+    "inner": {
+      "overflow": false,
+      "labels": false
+    },
+    "errors": []
+  },
+  {
+    "name": "tablet",
+    "outer": {
+      "overflow": false,
+      "headerClipped": false,
+      "toolsCoverScore": false
+    },
+    "inner": {
+      "overflow": false,
+      "labels": false
+    },
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "outer": {
+      "overflow": false,
+      "headerClipped": false,
+      "toolsCoverScore": false
+    },
+    "inner": {
+      "overflow": false,
+      "labels": false
+    },
+    "errors": []
+  }
+]

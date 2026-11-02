@@ -3,14 +3,16 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#101418" />
-    <meta name="description" content="智能曲谱 · 网页端：导入 MIDI / MusicXML / PDF / 照片乐谱，用麦克风听你弹奏并自动翻页。" />
+    <meta name="description" content="智能琴谱 · 网页端：导入 MIDI / MusicXML / PDF / 照片乐谱，用麦克风听你弹奏并自动翻页。" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>智能曲谱</title>
+    <title>智能琴谱 · Web 1.0</title>
     <link rel="stylesheet" href="css/app.css" />
+<link rel="stylesheet" href="css/performance.css" />
+<link rel="icon" href="data:,">
 </head>
 <body>
 
@@ -74,7 +76,7 @@
                     <svg><use href="#i-import"></use></svg>
                 </button>
                 <div class="topbar__title">
-                    <h1 id="score-title">智能曲谱</h1>
+                    <h1 id="score-title">智能琴谱</h1>
                     <span class="topbar__subtitle" id="score-subtitle">导入 MIDI / MusicXML / PDF / 照片开始</span>
                 </div>
                 <div class="topbar__actions">
@@ -258,7 +260,7 @@
                         <div class="card__head">
                             <div>
                                 <h3>关于</h3>
-                                <p id="about-name">智能曲谱</p>
+                                <p id="about-name">智能琴谱</p>
                             </div>
                         </div>
                         <div class="card__body">
@@ -358,5 +360,8 @@
 <script src="js/importers.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/app.js"></script>
+<script src="js/performance-controls.js"></script>
+<script src="js/core/midi-recording.js"></script>
+<script src="js/web-midi.js"></script>
 </body>
 </html>

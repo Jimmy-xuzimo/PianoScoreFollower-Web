@@ -1,0 +1,128 @@
+{
+  "cases": [
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-00",
+      "latency_seconds": 5.261768707482993,
+      "within_three_seconds": false,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-01",
+      "latency_seconds": 3.589931972789117,
+      "within_three_seconds": false,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-02",
+      "latency_seconds": 2.6843537414965972,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-03",
+      "latency_seconds": 1.801995464852606,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-04",
+      "latency_seconds": 1.2911564625850325,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-05",
+      "latency_seconds": 1.6626757369614502,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_VuV01M-06",
+      "latency_seconds": 1.1518367346938767,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-00",
+      "latency_seconds": 3.4506122448979575,
+      "within_three_seconds": false,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-01",
+      "latency_seconds": 2.6843537414965972,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-02",
+      "latency_seconds": 1.6626757369614502,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-03",
+      "latency_seconds": 0.89641723356009,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-04",
+      "latency_seconds": 1.4072562358276635,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-05",
+      "latency_seconds": 1.0357369614512457,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_858_Zhang01M-06",
+      "latency_seconds": 0.89641723356009,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_862_Song04M-00",
+      "latency_seconds": 2.6843537414965972,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_862_Song04M-01",
+      "latency_seconds": 1.4072562358276635,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_862_Song04M-02",
+      "latency_seconds": 1.0357369614512457,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_862_Song04M-03",
+      "latency_seconds": 1.0357369614512457,
+      "within_three_seconds": true,
+      "noise_snr_db": 20
+    },
+    {
+      "name": "Bach_Fugue_bwv_862_Song04M-04",
+      "latency_seconds": 2.56825396825397,
+      "within_three_seconds": true,
+      "noise_snr_db": null
+    },
+    {
+      "name": "Bach_Fugue_bwv_862_Song04M-05",
+      "latency_seconds": 3.1951927437641707,
+      "within_three_seconds": false,
+      "noise_snr_db": 20
+    }
+  ],
+  "count": 20,
+  "within_three_seconds": 0.8,
+  "passed": false,
+  "p95_seconds": 3.673523809523812
+}

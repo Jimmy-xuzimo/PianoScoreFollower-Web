@@ -1,0 +1,75 @@
+{
+  "cases": [
+    {
+      "name": "Bach_Fugue_bwv_863_LeeN01M",
+      "seconds": 162.79510204081632,
+      "within_half_beat": 0.9947225788047355,
+      "median_error_beats": 0.022256157692747063,
+      "p95_error_beats": 0.11160028065288354
+    },
+    {
+      "name": "Bach_Fugue_bwv_863_Shychko01M",
+      "seconds": 188.29061224489797,
+      "within_half_beat": 0.9946972499691701,
+      "median_error_beats": 0.02472406562467313,
+      "p95_error_beats": 0.12481499976711607
+    },
+    {
+      "name": "Bach_Fugue_bwv_873_Lisiecki13M",
+      "seconds": 117.05179138321995,
+      "within_half_beat": 0.9980162666137671,
+      "median_error_beats": 0.06304053792661458,
+      "p95_error_beats": 0.15688972914393465
+    },
+    {
+      "name": "k279_3",
+      "seconds": 273.94902494331063,
+      "within_half_beat": 0.9691473131039159,
+      "median_error_beats": 0.0740202633099519,
+      "p95_error_beats": 0.33732951995884386
+    },
+    {
+      "name": "k280_1",
+      "seconds": 283.56208616780043,
+      "within_half_beat": 0.9620045856534556,
+      "median_error_beats": 0.06700672503649419,
+      "p95_error_beats": 0.40967142593382616
+    },
+    {
+      "name": "Mozart_K331_1st-mov_p01",
+      "seconds": 99.21886621315193,
+      "within_half_beat": 0.9955534753100866,
+      "median_error_beats": 0.058538494502780244,
+      "p95_error_beats": 0.2593456956799811
+    },
+    {
+      "name": "Mozart_K331_1st-mov_p02",
+      "seconds": 97.87210884353742,
+      "within_half_beat": 0.9793594306049822,
+      "median_error_beats": 0.07303275321703874,
+      "p95_error_beats": 0.27001690918462334
+    },
+    {
+      "name": "Schubert_D783_no15_p01",
+      "seconds": 36.85006802721088,
+      "within_half_beat": 0.9287964713295526,
+      "median_error_beats": 0.16535622904581448,
+      "p95_error_beats": 0.6105608900428486
+    },
+    {
+      "name": "Schubert_D783_no15_p02",
+      "seconds": 38.70766439909297,
+      "within_half_beat": 0.8920215956808638,
+      "median_error_beats": 0.17432561074744324,
+      "p95_error_beats": 0.682152607822877
+    }
+  ],
+  "within_half_beat": 0.9764455493355749,
+  "sha256": {
+    "js\\core\\assessment.js": "7f9369aa72f4f306542ff5f6e0d52b10014866ed7c1ea1b2dc3ea07a48ce1d71",
+    "js\\core\\midi-recording.js": "de7f2e35846743725900ef241a14b7648f899d5354a00b411bb8ec8d926d287e",
+    "js\\core\\piano-stream.js": "b8daa62058306bedfe13dfb3b86caac022a6edd990637fa558a416f4bcd9091c",
+    "js\\core\\score-follower.js": "ffd6bc33682de7009d1a298d7cf971f77932b163221f8bb600fe1be56731afe8",
+    "js\\core\\tempo-pitch.js": "07e03b48d63d68e858c25d99292fe21ce7d1ceb29e7ddba232099df2d5b5e9bb"
+  }
+}
