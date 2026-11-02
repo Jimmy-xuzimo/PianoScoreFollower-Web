@@ -15,7 +15,7 @@
   var HOP_SIZE = AudioConfig.HOP_SIZE;
 
   var WORKLET_URL = "js/pcm-worklet.js";
-  var WORKER_URL = "js/analysis-worker.js";
+  var WORKER_URL = "js/analysis-worker.js?v=20261102-2";
 
   function ListeningEngine() {
     this.isRunning = false;
