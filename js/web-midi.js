@@ -166,7 +166,11 @@ function setupWebMidi() {
   root.className = "midi-controls";
   root.innerHTML =
     '<label>录制速度 <input id="midi-bpm" type="number" min="30" max="300" value="120" style="width:64px"> BPM</label><select id="midi-ports" aria-label="MIDI 输入端口"><option>USB MIDI</option></select><button id="midi-connect">连接 MIDI 跟谱</button><button id="midi-record">录制 MIDI</button><button id="midi-save">保存到曲库</button><button id="midi-download">导出 MIDI</button><output id="midi-notes" aria-live="polite">等待琴键</output>';
-  document.getElementById("mic-panel-body").prepend(root);
+  const midiSection = document.createElement("details");
+  midiSection.id = "midi-section";
+  midiSection.innerHTML = "<summary>USB MIDI 与录制</summary>";
+  midiSection.append(root);
+  document.getElementById("mic-panel-body").append(midiSection);
   document.getElementById("midi-connect").onclick = enable;
   document.getElementById("midi-record").disabled = true;
   document.getElementById("midi-record").onclick = () => {
@@ -194,15 +198,14 @@ function setupWebMidi() {
     );
   };
   const openRecording = document.createElement("button");
-  openRecording.className = "icon-btn";
+  openRecording.className = "icon-btn midi-entry";
   openRecording.type = "button";
   openRecording.textContent = "MIDI";
   openRecording.title = "USB MIDI 与录制";
   openRecording.setAttribute("aria-label", "USB MIDI 与录制");
   openRecording.onclick = () => {
-    const panel = document.getElementById("mic-panel");
-    panel.dataset.open = "true";
-    panel.setAttribute("aria-hidden", "false");
+    window.dispatchEvent(new Event("psf-open-follow-panel"));
+    midiSection.open = true;
   };
   document
     .querySelector("#screen-score .topbar__actions")

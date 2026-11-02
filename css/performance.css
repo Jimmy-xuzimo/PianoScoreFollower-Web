@@ -140,3 +140,220 @@
 .performance-focus .performance-controls > :not(#focus-toggle) {
   display: none !important;
 }
+/* The input drawer sits above page chrome; its close button must remain tappable. */
+.mic-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 49;
+  background: #0008;
+  cursor: pointer;
+}
+#mic-panel {
+  z-index: 50;
+  width: min(420px, calc(100% - 24px));
+  max-height: 100%;
+  background: #22262f;
+}
+#mic-panel-close {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.mic-panel__head {
+  padding: 8px 12px 8px 18px;
+}
+#mic-panel-body {
+  padding: 16px;
+  gap: 16px;
+}
+#mic-panel-body > details {
+  border-top: 1px solid #465063;
+  padding-top: 12px;
+}
+#mic-panel-body summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+#mic-panel-body summary::after {
+  content: "＋";
+  margin-left: auto;
+}
+#mic-panel-body details[open] > summary::after {
+  content: "−";
+}
+.mic-diagnostics section {
+  margin-top: 12px;
+}
+#mic-status {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.score-options {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#score-options-toggle {
+  display: none;
+}
+.performance-focus .mic-backdrop {
+  display: none !important;
+}
+@media (max-width: 600px) {
+  #screen-score > .topbar {
+    height: 50px;
+    gap: 0;
+    padding: 0 4px;
+  }
+  #screen-score .topbar__title h1 {
+    font-size: 14px;
+  }
+  #screen-score .topbar__subtitle {
+    font-size: 11px;
+  }
+  #screen-score .topbar__actions {
+    gap: 0;
+  }
+  #screen-score .topbar__actions .icon-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 44px;
+  }
+  #screen-score .midi-entry {
+    display: none;
+  }
+  .performance-controls {
+    justify-content: space-between;
+    max-width: none;
+    margin: 4px 8px;
+    gap: 4px;
+  }
+  .performance-controls > button {
+    min-height: 40px;
+    padding: 6px 12px;
+  }
+  #score-options-toggle {
+    display: block;
+  }
+  .score-options {
+    display: none;
+    flex-basis: 100%;
+    justify-content: flex-end;
+    padding: 4px 0;
+  }
+  .score-options[data-open="true"] {
+    display: flex;
+  }
+  #screen-score .bottombar {
+    height: 52px;
+    margin: 6px 8px;
+    width: calc(100% - 16px);
+    gap: 2px;
+    padding: 0 6px;
+  }
+  #screen-score .bottombar #btn-restart,
+  #screen-score .bottombar #btn-autoturn,
+  #screen-score .bar__label-sub {
+    display: none;
+  }
+  #screen-score .bar__confidence {
+    width: 32px;
+  }
+  #screen-score .bar__label-main {
+    max-width: 108px;
+    font-size: 12px;
+  }
+  #score-body[data-reserve-bar="true"] {
+    padding-bottom: 64px;
+  }
+  #mic-panel {
+    width: 100%;
+    border: 0;
+  }
+  #mic-panel-body {
+    padding: 12px 16px;
+  }
+  .midi-controls > select {
+    width: 100%;
+  }
+  .assessment-controls {
+    padding: 0;
+  }
+}
+@media (max-height: 460px) and (min-width: 601px) {
+  #mic-panel {
+    width: min(420px, calc(100% - 24px));
+  }
+  .performance-controls {
+    margin: 2px 8px;
+  }
+  .performance-controls button,
+  .performance-controls select {
+    padding: 6px 10px;
+  }
+}
+#mic-panel .status-line {
+  background: #303744;
+  color: #f1f4f9;
+  border: 1px solid #526074;
+}
+#mic-panel .status-line[data-tone="ok"] {
+  color: #c4e7cc;
+}
+#screen-score:has(#bar-layer[data-hidden="true"]) #score-body {
+  padding-bottom: 0;
+}
+#screen-score:has(#bar-layer[data-hidden="true"]) .position-chip {
+  bottom: 30px;
+  font-size: 10px;
+  padding: 4px 8px;
+}
+@media (max-width: 600px) {
+  #screen-score > .topbar {
+    height: 44px;
+  }
+  #screen-score .topbar__subtitle {
+    display: none;
+  }
+  #screen-score .performance-controls > button {
+    min-height: 36px;
+    padding: 4px 10px;
+  }
+}
+/* Keep the input entry off the notation; no floating tab covers a staff. */
+.performance-controls #mic-tab {
+  position: static;
+  writing-mode: horizontal-tb;
+  letter-spacing: 0;
+  border: 1px solid #526074;
+  border-radius: 22px;
+  box-shadow: none;
+}
+@media (max-width: 600px) {
+  #screen-score:has(#notation-stage[hidden]) .midi-entry {
+    display: flex;
+  }
+  .performance-controls {
+    gap: 3px;
+  }
+  .performance-controls > button {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+/* Secondary score actions stay folded on every screen size. */
+#score-options-toggle {
+  display: block;
+}
+.score-options {
+  display: none;
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
+.score-options[data-open="true"] {
+  display: flex;
+}

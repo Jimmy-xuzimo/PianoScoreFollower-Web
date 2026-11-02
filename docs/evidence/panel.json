@@ -1,0 +1,62 @@
+[
+  {
+    "name": "small-phone",
+    "layout": {
+      "width": 320,
+      "overflow": false,
+      "toolbarHeight": 36,
+      "scoreHeight": 480,
+      "screenHeight": 568
+    },
+    "scoreProportions": true,
+    "errors": []
+  },
+  {
+    "name": "phone",
+    "layout": {
+      "width": 390,
+      "overflow": false,
+      "toolbarHeight": 36,
+      "scoreHeight": 576,
+      "screenHeight": 664
+    },
+    "scoreProportions": true,
+    "errors": []
+  },
+  {
+    "name": "landscape",
+    "layout": {
+      "width": 750,
+      "overflow": false,
+      "toolbarHeight": 38,
+      "scoreHeight": 252,
+      "screenHeight": 342
+    },
+    "scoreProportions": true,
+    "errors": []
+  },
+  {
+    "name": "tablet",
+    "layout": {
+      "width": 1024,
+      "overflow": false,
+      "toolbarHeight": 44,
+      "scoreHeight": 656,
+      "screenHeight": 768
+    },
+    "scoreProportions": true,
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "layout": {
+      "width": 1440,
+      "overflow": false,
+      "toolbarHeight": 44,
+      "scoreHeight": 788,
+      "screenHeight": 900
+    },
+    "scoreProportions": true,
+    "errors": []
+  }
+]

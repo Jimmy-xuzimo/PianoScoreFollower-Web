@@ -45,6 +45,7 @@ const fs = require("node:fs");
     await page.frameLocator("#viewer").locator("#score svg").first().waitFor();
     await page.locator("#mic-tab").click();
     await page.locator("#assessment-enabled").check();
+    await page.locator("#midi-section > summary").click();
     await page.locator("#midi-connect").click();
     await page.locator("#midi-record").click();
     const score = await page

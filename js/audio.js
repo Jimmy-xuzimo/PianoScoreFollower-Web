@@ -64,6 +64,43 @@
    * 打开麦克风。返回 true 表示采集已经在跑。
    * 必须在用户手势（点击）里调用，否则浏览器的自动播放策略会挂起 AudioContext。
    */
+  ListeningEngine.prototype.prepareModel = async function () {
+    global.dispatchEvent(new Event("psf-microphone-start"));
+    const stopped = this.stop();
+    const attempt = this._captureAttempt;
+    await stopped;
+    if (attempt !== this._captureAttempt) return false;
+    try {
+      this._context = new (global.AudioContext || global.webkitAudioContext)();
+      const context = this._context;
+      await context.resume();
+      if (attempt !== this._captureAttempt) return false;
+      if (this._context.state !== "running")
+        throw Error("请再次点击开始以启用音频");
+      this.sampleRate = Math.round(this._context.sampleRate);
+      if (!this._startWorker()) {
+        await this.stop();
+        return false;
+      }
+      return await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          this.reportError("模型准备超时，请检查网络后重试，或使用 MIDI 输入");
+          this.stop();
+        }, 180000);
+        this._modelWait = { resolve, timer };
+        this._worker.postMessage({
+          type: "prepareModel",
+          generation: ++this._generation,
+        });
+      });
+    } catch (error) {
+      if (attempt !== this._captureAttempt) return false;
+      this.reportError(error.message || String(error));
+      await this.stop();
+      return false;
+    }
+  };
+
   ListeningEngine.prototype.start = async function () {
     global.dispatchEvent(new Event("psf-microphone-start"));
     if (this.isRunning) return true;
@@ -98,12 +135,15 @@
       }
       this._stream = capturedStream;
     } catch (error) {
+      if (captureAttempt !== this._captureAttempt) return false;
       this.reportError(describeCaptureError(error));
       return false;
     }
 
     try {
-      this._context = new (global.AudioContext || global.webkitAudioContext)();
+      this._context =
+        this._context ||
+        new (global.AudioContext || global.webkitAudioContext)();
     } catch (error) {
       this.releaseStream();
       this.reportError(
@@ -120,6 +160,7 @@
         /* 下面统一判定 */
       }
     }
+    if (captureAttempt !== this._captureAttempt) return false;
     if (this._context.state !== "running") {
       await this.closeContext();
       this.releaseStream();
@@ -138,6 +179,7 @@
 
     this._source = this._context.createMediaStreamSource(this._stream);
     var started = await this._startWorklet();
+    if (captureAttempt !== this._captureAttempt) return false;
     if (!started && !this._startScriptProcessor()) {
       this._stopWorker();
       await this.closeContext();
@@ -158,7 +200,7 @@
 
   ListeningEngine.prototype._startWorker = function () {
     try {
-      this._worker = new global.Worker(WORKER_URL);
+      this._worker = this._worker || new global.Worker(WORKER_URL);
     } catch (error) {
       this.reportError(
         "无法启动分析线程：" + (error && error.message ? error.message : error),
@@ -192,10 +234,12 @@
 
   /** 优先 AudioWorklet：它在音频渲染线程上跑，不受主线程卡顿影响。 */
   ListeningEngine.prototype._startWorklet = async function () {
-    if (!this._context.audioWorklet) return false;
+    const context = this._context;
+    if (!context.audioWorklet) return false;
     try {
-      await this._context.audioWorklet.addModule(WORKLET_URL);
-      var node = new global.AudioWorkletNode(this._context, "pcm-hop", {
+      await context.audioWorklet.addModule(WORKLET_URL);
+      if (context !== this._context) return false;
+      var node = new global.AudioWorkletNode(context, "pcm-hop", {
         numberOfInputs: 1,
         numberOfOutputs: 0,
         processorOptions: { hopSize: HOP_SIZE },
@@ -212,6 +256,7 @@
       this._workletReady = true;
       return true;
     } catch (error) {
+      if (context !== this._context) return false;
       this._worklet = null;
       this._workletReady = false;
       return false;
@@ -266,7 +311,15 @@
       return;
     }
     if (payload.kind === "preparing") {
-      if (this.onModeReady) this.onModeReady("preparing");
+      if (this.onModeReady) this.onModeReady("preparing", payload.message);
+      return;
+    }
+    if (payload.kind === "modelReady") {
+      if (this._modelWait) {
+        clearTimeout(this._modelWait.timer);
+        this._modelWait.resolve(true);
+        this._modelWait = null;
+      }
       return;
     }
     if (payload.kind === "frame") {
@@ -365,6 +418,11 @@
 
   ListeningEngine.prototype.stop = async function () {
     this._captureAttempt++;
+    if (this._modelWait) {
+      clearTimeout(this._modelWait.timer);
+      this._modelWait.resolve(false);
+      this._modelWait = null;
+    }
     const stoppedGeneration = ++this._generation;
     if (!this.isRunning && !this._context && !this._worker) return;
     this.isRunning = false;

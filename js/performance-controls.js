@@ -6,11 +6,37 @@
   controls.className = "performance-controls";
   controls.innerHTML =
     '<button id="notation-toggle">五线谱／简谱</button><select id="navigation-mode" aria-label="跟随模式"><option value="line">逐行跟随</option><option value="page">分页跟随</option></select><button id="focus-toggle">专注看谱</button><button id="resume-score">回到跟随位置</button><label><input type="checkbox" id="assessment-enabled">评分练习</label><button id="assessment-finish">结算评分</button><output id="assessment-result" aria-live="polite"></output>';
+  controls.prepend(document.getElementById("mic-tab"));
   stage.append(controls);
   const xmlExport = document.createElement("button");
   xmlExport.textContent = "导出谱面";
   xmlExport.onclick = () => window.dispatchEvent(new Event("psf-export-score"));
-  controls.append(xmlExport);
+  const playback = document.createElement("button");
+  playback.id = "playback-controls-toggle";
+  playback.textContent = "播放控件";
+  playback.onclick = () =>
+    window.dispatchEvent(new Event("psf-toggle-playback-controls"));
+  xmlExport.id = "export-score";
+  const options = document.createElement("div");
+  options.id = "score-options";
+  options.className = "score-options";
+  options.append(
+    document.getElementById("navigation-mode"),
+    document.getElementById("resume-score"),
+    xmlExport,
+    playback,
+  );
+  const toggleOptions = document.createElement("button");
+  toggleOptions.id = "score-options-toggle";
+  toggleOptions.textContent = "更多";
+  toggleOptions.setAttribute("aria-controls", "score-options");
+  toggleOptions.setAttribute("aria-expanded", "false");
+  toggleOptions.onclick = () => {
+    const open = options.dataset.open !== "true";
+    options.dataset.open = String(open);
+    toggleOptions.setAttribute("aria-expanded", String(open));
+  };
+  controls.append(toggleOptions, options);
   const assessmentPanel = document.createElement("section");
   assessmentPanel.className = "assessment-controls";
   assessmentPanel.append(
@@ -61,6 +87,7 @@
     send("setNotationMode", [numbered ? "numbered" : "staff"]);
   };
   document.getElementById("focus-toggle").onclick = () => {
+    window.dispatchEvent(new Event("psf-close-follow-panel"));
     document.body.classList.toggle("performance-focus");
     document.getElementById("focus-toggle").textContent =
       document.body.classList.contains("performance-focus")

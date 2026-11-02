@@ -39,10 +39,47 @@ function loadModel() {
       await tf.setBackend("cpu");
       await tf.ready();
       tflite.setWasmPath("../vendor/");
-      model = await tflite.loadTFLiteModel(
+      const response = await fetch(
         "../assets/models/onsets_frames_wavinput_uni.tflite",
-        { numThreads: 1 },
       );
+      if (!response.ok) throw Error("下载失败（HTTP " + response.status + "）");
+      const total = Number(response.headers.get("Content-Length")) || 97684256;
+      const reader = response.body?.getReader();
+      let buffer;
+      if (reader) {
+        const chunks = [];
+        let received = 0,
+          last = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          if (performance.now() - last > 250) {
+            last = performance.now();
+            self.postMessage({
+              kind: "preparing",
+              message:
+                "下载钢琴模型 " +
+                Math.min(100, Math.round((received / total) * 100)) +
+                "% · 首次约 98 MB，可取消",
+            });
+          }
+        }
+        const bytes = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.length;
+        }
+        chunks.length = 0;
+        buffer = bytes.buffer;
+      } else buffer = await response.arrayBuffer();
+      self.postMessage({
+        kind: "preparing",
+        message: "正在初始化钢琴识别，完成后才会打开麦克风…",
+      });
+      model = await tflite.loadTFLiteModel(buffer, { numThreads: 1 });
       return model;
     })().catch((e) => {
       modelPromise = null;
@@ -84,6 +121,29 @@ self.onmessage = async function (event) {
   if (!data || typeof data.type !== "string") return;
 
   switch (data.type) {
+    case "prepareModel": {
+      const token = ++version;
+      outputGeneration = data.generation || 0;
+      mode = "preparing";
+      self.postMessage({
+        kind: "preparing",
+        message: "正在准备钢琴模型，暂未开启麦克风…",
+      });
+      try {
+        await loadModel();
+        if (token === version) {
+          mode = "idle";
+          self.postMessage({ kind: "modelReady" });
+        }
+      } catch (e) {
+        if (token === version)
+          self.postMessage({
+            kind: "error",
+            message: "钢琴模型准备失败：" + e.message,
+          });
+      }
+      break;
+    }
     case "config":
       if (data.hopSize) hopSize = data.hopSize;
       if (data.sampleRate) sampleRate = data.sampleRate;

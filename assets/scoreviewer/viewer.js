@@ -161,6 +161,8 @@
         };
 
         api = new AT.AlphaTabApi(scoreEl, settings);
+        api.settings.display.resources.titleFont = api.settings.display.resources.titleFont.withSize(viewportEl.clientWidth < 600 ? 18 : 32);
+        api.updateSettings();
 
         api.error.on(function (err) {
             var message = err && err.message ? err.message : String(err);
@@ -1084,10 +1086,12 @@
             resizeTimer = null;
             if (!api) return;
             var scale = responsiveScale();
-            var scaleChanged = Math.abs(api.settings.display.scale - scale) > 0.001;
+            var titleSize = viewportEl.clientWidth < 600 ? 18 : 32;
+            var scaleChanged = Math.abs(api.settings.display.scale - scale) > 0.001 || api.settings.display.resources.titleFont.size !== titleSize;
             try {
                 if (scaleChanged) {
                     api.settings.display.scale = scale;
+                    api.settings.display.resources.titleFont = api.settings.display.resources.titleFont.withSize(titleSize);
                     api.updateSettings();
                 }
                 api.render();

@@ -26,6 +26,9 @@ jobs:
           curl --retry 8 --retry-connrefused --retry-delay 1 http://127.0.0.1:8767/ -o /dev/null
           npm run test:ui
           node tools/midi-smoke.cjs
+          node tools/panel-smoke.cjs
+          node tools/input-lifecycle.cjs
+          node tools/playback-smoke.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

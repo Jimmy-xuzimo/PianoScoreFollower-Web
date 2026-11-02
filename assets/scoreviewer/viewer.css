@@ -142,3 +142,7 @@ html, body {
 .numbered-irregular { top:-27px; left:10px; background:#fff; }
 .numbered-tie { top:-25px; left:2px; }
 .numbered-hand { color:#424b57; }
+@media(max-width:600px) {
+  .numbered-heading {font-size:18px;overflow-wrap:anywhere;}
+  #stage {padding-left:4px;padding-right:4px;}
+}

@@ -479,6 +479,7 @@
         }
         $('score-body').dataset.reserveBar = 'true';
         $('bar-layer').hidden = false;
+        $('bar-layer').dataset.hidden = notation ? 'true' : 'false';
         buildBar();
         updateTopbarButtons();
         updatePositionChip();
@@ -497,7 +498,8 @@
 
     function openNotation(entry) {
         if (!entry || !entry.blob) return;
-        if(state.follow.active)stopFollowing(true);
+        if(state.follow.active || state.follow.starting)stopFollowing(true);
+        openMicPanel(false);
         state.follow.cursorTick=entry.tick||0;state.restoreTick=entry.tick||0;
         releaseNotationUrl();
 
@@ -558,7 +560,7 @@
             return;
         }
         /* 播放器与麦克风跟谱共用同一个游标，同时跑会互相打架。 */
-        if (state.follow.active) stopFollowing(true);
+        if (state.follow.active || state.follow.starting) stopFollowing(true);
 
         if (state.player.soundfont !== 'ready') {
             postViewer('ensureSoundFont');
@@ -591,18 +593,18 @@
         }
     });
     global.addEventListener('psf-midi-observation',e=>listening.sendMidiObservation(e.detail));
-    global.addEventListener('psf-midi-disconnected',()=>{if(state.follow.active)stopFollowing(true);toast('MIDI 已断开，录制数据仍保留','warning');});
+    global.addEventListener('psf-midi-disconnected',()=>{if(state.follow.active || state.follow.starting)stopFollowing(true);toast('MIDI 已断开，录制数据仍保留','warning');});
     listening.onFrame = function (frame) {
         updateMeter(frame);
         if (frame.follow) applyFollow(frame.follow);
         else if (frame.calibration) applyCalibration(frame.calibration);
     };
 
-    listening.onModeReady=function(mode){if(mode==='preparing'){state.follow.status='PREPARING';setLoading('正在准备钢琴模型，请稍候再弹奏…');}else if(mode==='follow'){state.follow.status='WAITING';clearLoading();toast('跟谱输入已就绪，可以开始演奏');}};
+    listening.onModeReady=function(mode,message){if(mode==='preparing'){state.follow.status='PREPARING';setLoading(message||'正在准备钢琴模型，请稍候再弹奏…');if($('mic-status'))$('mic-status').textContent=message||'准备中，请稍候再弹奏';}else if(mode==='follow'){state.follow.status='WAITING';clearLoading();toast('跟谱输入已就绪，可以开始演奏');}};
     listening.onError = function (message) {
         clearLoading();
         toast(message, 'error');
-        if (state.follow.active) stopFollowing(true);
+        if (state.follow.active || state.follow.starting) stopFollowing(true);
         if (state.tuner.running) stopTuner();
     };
 
@@ -693,13 +695,20 @@
         }
         if (state.player.playing) postViewer('pause');
 
+        var request = state.follow.request = (state.follow.request || 0) + 1;
         state.follow.starting=true;
         state.follow.source='microphone';
-        setLoading('正在打开麦克风…');
+        refreshMicPanel();
+        var prepared = await listening.prepareModel();
+        if (request !== state.follow.request) return;
+        if (!prepared || !state.follow.starting) { clearLoading(); state.follow.starting=false; refreshMicPanel(); return; }
+        setLoading('正在请求麦克风权限…');
+        $('mic-status').textContent='模型已准备好，请允许麦克风权限…';
         var started = await listening.start();
+        if (request !== state.follow.request) return;
         state.follow.starting=false;
         if (!started) {
-            clearLoading();
+            clearLoading(); await listening.stop(); refreshMicPanel();
             return;
         }
         clearLoading();
@@ -718,6 +727,7 @@
 
     function stopFollowing(silent) {
         if (!state.follow.active && !state.follow.starting) return;
+        state.follow.request = (state.follow.request || 0) + 1;
         clearLoading();state.follow.starting=false;
         state.follow.active = false;
         state.follow.confidence = 0;
@@ -843,9 +853,14 @@
             '</button>';
 
         $('btn-follow').addEventListener('click', function () {
-            if (state.follow.active) stopFollowing();
+            if (state.follow.active || state.follow.starting) stopFollowing();
             else startFollowing();
         });
+        var statusSection = body.querySelector('#mic-status').closest('section');
+        var diagnostics = doc.createElement('details'); diagnostics.className = 'mic-diagnostics';
+        diagnostics.innerHTML = '<summary>输入电平与识别诊断</summary>';
+        Array.from(body.querySelectorAll('section')).forEach(function(section){if(section !== statusSection)diagnostics.append(section);});
+        body.prepend($('btn-follow'),statusSection); body.append(diagnostics);
         refreshMicPanel();
     }
 
@@ -856,7 +871,11 @@
         if (!button || !status) return;
 
         var canFollow = state.activeKind === 'notation' && !!state.viewer.structure;
-        if (state.follow.active) {
+        if (state.follow.starting) {
+            button.innerHTML = '<span id="btn-follow-text">取消准备</span>';
+            button.disabled = false;
+            status.textContent = '准备钢琴识别，完成后再开始演奏';
+        } else if (state.follow.active) {
             button.innerHTML = icon('i-mic-off') + '<span id="btn-follow-text">停止跟谱</span>';
             button.disabled = false;
             status.dataset.tone = 'ok';
@@ -878,10 +897,16 @@
     function openMicPanel(open) {
         var panel = $('mic-panel');
         var tab = $('mic-tab');
+        var restoreFocus = panel.contains(doc.activeElement);
+        panel.inert = !open;
+        $('mic-backdrop').hidden = !open;
         panel.dataset.open = open ? 'true' : 'false';
         panel.setAttribute('aria-hidden', open ? 'false' : 'true');
         tab.dataset.open = open ? 'true' : 'false';
+        tab.setAttribute('aria-expanded', String(!!open));
         tab.setAttribute('aria-label', open ? '收起跟谱面板' : '展开跟谱面板');
+        if (open) $('mic-panel-close').focus({preventScroll:true});
+        else if (restoreFocus) tab.focus({preventScroll:true});
     }
 
     /* ================================================================== */
@@ -1050,8 +1075,11 @@
     /* ================================================================== */
 
     async function startTuner() {
-        if (state.follow.active) stopFollowing(true);
-        setLoading('正在打开麦克风…');
+        if (state.follow.active || state.follow.starting) stopFollowing(true);
+        refreshMicPanel();
+        var prepared = await listening.prepareModel();
+        if (!prepared || !state.follow.starting) { clearLoading(); state.follow.starting=false; refreshMicPanel(); return; }
+        setLoading('正在请求麦克风权限…');
         var started = await listening.start();
         clearLoading();
         if (!started) return;
@@ -1805,7 +1833,7 @@
     }
 
     function clearCurrentScore() {
-        if (state.follow.active) stopFollowing(true);
+        if (state.follow.active || state.follow.starting) stopFollowing(true);
         if (state.scrollPlay.playing) toggleScrollPlayback(false);
         if (state.player.playing) postViewer('pause');
 
@@ -2072,10 +2100,19 @@
             openMicPanel($('mic-panel').dataset.open !== 'true');
         });
         $('mic-panel-close').addEventListener('click', function () { openMicPanel(false); });
+        $('mic-backdrop').addEventListener('click', function () { openMicPanel(false); });
+        global.addEventListener('psf-open-follow-panel', function(){openMicPanel(true);});
+        global.addEventListener('psf-close-follow-panel', function(){openMicPanel(false);});
+        doc.addEventListener('keydown', function(e){
+            if($('mic-panel').dataset.open !== 'true') return;
+            if(e.key === 'Escape'){e.preventDefault();openMicPanel(false);return;}
+            if(e.key === 'Tab'){var nodes=Array.from($('mic-panel').querySelectorAll('button,input,select,summary,a[href]')).filter(n=>!n.disabled && n.getClientRects().length);var first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey && doc.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey && doc.activeElement===last){e.preventDefault();first.focus();}}
+        });
 
         /* 控制条下滑隐藏，由底部把手唤出 —— 与手机端一致。 */
         var barLayer = $('bar-layer');
         $('bar-handle').addEventListener('click', function () { barLayer.dataset.hidden = 'false'; });
+        global.addEventListener('psf-toggle-playback-controls', function(){barLayer.dataset.hidden=barLayer.dataset.hidden==='true'?'false':'true';});
 
         var dragStartY = null;
         $('bottombar').addEventListener('pointerdown', function (event) {

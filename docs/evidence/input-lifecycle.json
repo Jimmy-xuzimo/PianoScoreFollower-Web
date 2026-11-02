@@ -1,0 +1,30 @@
+[
+  {
+    "name": "download-failure",
+    "captures": 0,
+    "tracksEnded": true,
+    "hasRetry": true,
+    "errors": []
+  },
+  {
+    "name": "cancel-preparing",
+    "captures": 0,
+    "tracksEnded": true,
+    "hasRetry": true,
+    "errors": []
+  },
+  {
+    "name": "denied",
+    "captures": 1,
+    "tracksEnded": true,
+    "hasRetry": true,
+    "errors": []
+  },
+  {
+    "name": "late",
+    "captures": 1,
+    "tracksEnded": true,
+    "hasRetry": true,
+    "errors": []
+  }
+]
