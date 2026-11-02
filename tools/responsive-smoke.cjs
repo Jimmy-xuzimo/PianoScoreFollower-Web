@@ -46,6 +46,8 @@ const { chromium } = require("playwright"),
             document.getElementById("numbered").innerText.includes("左手"),
         }));
       await page.locator("#focus-toggle").click();
+      if (await page.locator("#bar-layer").isVisible())
+        throw Error("Focus mode still shows playback controls");
       await page.screenshot({ path: "shots/" + name + "-focus.png" });
       await page.locator("#focus-toggle").click();
       await page.locator("#btn-settings").click();

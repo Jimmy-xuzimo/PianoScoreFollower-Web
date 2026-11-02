@@ -43,12 +43,14 @@
   background: #14171d;
 }
 .performance-focus #screen-score > .topbar,
+.performance-focus #bar-layer,
 .performance-focus .mic-tab,
 .performance-focus .mic-panel {
   display: none !important;
 }
 .performance-focus #score-body {
   height: 100dvh !important;
+  padding-bottom: 0 !important;
 }
 @media (max-width: 600px) {
   .performance-controls {
