@@ -5,10 +5,10 @@
     "tick": 532,
     "measure": 0,
     "occurrence": 0,
-    "tempo": 129.999999354283,
-    "confidence": 0.6666666666666666,
+    "tempo": 129.10487375461193,
+    "confidence": 0.6578306451233094,
     "status": "FOLLOWING",
-    "similarity": 0.6666666666666666,
+    "similarity": 0.9634660403432971,
     "anticipatedNotes": [
       55,
       46,
@@ -18,11 +18,10 @@
     "confirmedTick": 0,
     "onsetPulse": 1,
     "cursorTick": 532,
-    "bestSimilarity": 0.6666666666666666,
+    "bestSimilarity": 0.6578306451233094,
     "topPitchClasses": [
       3,
-      5,
-      10
+      5
     ],
     "targetPitchClasses": [
       5,
@@ -32,22 +31,22 @@
   },
   "last": {
     "eventIndex": 34,
-    "tick": 17280,
+    "tick": 17264,
     "measure": 4,
     "occurrence": 0,
-    "tempo": 128.9149087625925,
-    "confidence": 0.9696537660967592,
+    "tempo": 128.75316567907873,
+    "confidence": 0.9700048121699034,
     "status": "FOLLOWING",
-    "similarity": 0.9696537660967592,
+    "similarity": 0.9700048121699034,
     "anticipatedNotes": [
       77,
       55,
       58
     ],
     "confirmedTick": 16320,
-    "onsetPulse": 33,
-    "cursorTick": 17280,
-    "bestSimilarity": 0.9696537660967592,
+    "onsetPulse": 34,
+    "cursorTick": 17264,
+    "bestSimilarity": 0.9700048121699034,
     "topPitchClasses": [],
     "targetPitchClasses": [
       10,
@@ -55,5 +54,6 @@
     ],
     "isReady": true
   },
+  "confirmedFollowing": 378,
   "pageErrors": []
 }

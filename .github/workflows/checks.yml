@@ -25,6 +25,7 @@ jobs:
           python3 serve.py --port 8767 > /tmp/piano-web-server.log 2>&1 &
           curl --retry 8 --retry-connrefused --retry-delay 1 http://127.0.0.1:8767/ -o /dev/null
           npm run test:ui
+          node tools/midi-smoke.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

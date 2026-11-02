@@ -59,14 +59,14 @@
 | 检查 | 结果与范围 |
 | --- | --- |
 | Node 核心 / 图谱 / 简谱 / 导航 | 20 通过，0 失败；静音、错音、停顿、重复歧义、预测不计分、双手节拍、反复路径、跳转防抖 |
-| 实际 AudioWorklet → Worker → 模型 | Chrome 虚拟麦克风顺序播放真实录音前缀，635 帧、推进到 tick 17280，无页面 / Worker 错误 |
+| 实际 AudioWorklet → Worker → 模型 | Chrome 虚拟麦克风顺序播放真实录音前缀，635 帧、推进到 tick 17264，378 帧为置信度 > 0.7 的 FOLLOWING，无页面 / Worker 错误 |
 | Web MIDI 虚拟端口 | 8 个谱面事件，219–220 帧，确认到事件 7；12 个正确音，结算后剩余 180 个音计漏弹；录制保存原始 SMF Blob 150 字节；停止保存练习位置、从曲库导出原始 MIDI 均通过 |
 | 手机 / 平板 / 桌面 | 393×852、1024×768、1440×900，五线谱 / 双行简谱、专注模式与关于，无横向溢出、无左右手文字、工具栏不覆盖谱面 |
 | 文件 | MXL 打开、双页 PDF 定时滚动、损坏 MusicXML 明确退出加载 |
 | 模型资源 | 本地 vendor + 模型，同源加载无外部 CDN、无 404；四个 [1,32,88] 输出 |
 | MIDI 互操作 | mido 检查音高、力度、通道、踏板、时间及速度元事件 |
 
-测试命令与外部夹具要求见 [TESTING](TESTING.md)。GitHub Actions 会重复 Node、格式和三个尺寸的 UI 检查。
+测试命令与外部夹具要求见 [TESTING](TESTING.md)。GitHub Actions 会重复 Node、格式、三个尺寸的 UI 和虚拟 MIDI 检查。
 
 ## 验证边界
 
@@ -80,3 +80,11 @@
 ![平板双行简谱](evidence/tablet-numbered.png)
 
 ![手机专注模式](evidence/phone-focus.png)
+
+## 发布核验
+
+- 2026-11-02 原 GitHub Pages 地址已部署，主重构提交 16d76518395331e0ab8f9f3e395b7967129a3cb4。
+- [首轮云端检查](https://github.com/Jimmy-xuzimo/PianoScoreFollower-Web/actions/runs/41431477050) 成功；[Pages 部署](https://github.com/Jimmy-xuzimo/PianoScoreFollower-Web/actions/runs/41431475238) 成功。
+- 正式站点重复三个尺寸 UI 与虚拟 MIDI 保存 / 导出，均通过。
+- 正式站点实际下载模型并执行推理，四个输出形状正确，单次 118.9 ms；模型 HTTP 200，Content-Length 97684256。
+- 冷启动下载受网络影响，测试中也出现长时间等待。虚拟录音立即播放会在模型准备期间丢过开头；麦克风回归先预热模型下载，再启用虚拟录音，并断言实际高置信度跟随帧。用户应等待页面提示“输入已就绪”后开始弹奏。

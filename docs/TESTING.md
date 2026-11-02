@@ -23,6 +23,7 @@ node tools/probe-model.cjs 验证同站点 WASM 加载和 17920 → 4×[1,32,88]
 35 秒音频对照使用 tools/stream-probe.html，需自行准备 tools/fixtures/audio.f32 与 expected.json。
 音频为 44.1 kHz 单声道 float32，expected 为 [onsetMs,pitch] 数组；不随仓库分发。
 node tools/microphone-smoke.cjs 使用 tools/fixtures/audio.wav 作为 Chrome 虚拟麦克风，覆盖真正的 AudioWorklet 与 Worker。
+测试先预热模型下载（90 秒超时），再让虚拟录音开始，断言高置信度 FOLLOWING 帧；否则下载等待会消耗录音开头。
 这些是测试输入，不能当作实体拾音已通过。
 
 ## 对齐回放
